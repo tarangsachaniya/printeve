@@ -1,9 +1,20 @@
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3032"}/v1/web`;
 
-function getCookie(name: string): string | null {
+// In-memory CSRF token cache — populated from response headers on every GET.
+// Falls back to cookie for same-origin setups where cookies work fine.
+let cachedCsrfToken: string | null = null;
+
+function getCookieValue(name: string): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getCsrfToken(): string | null {
+  // Prefer in-memory cache (works cross-origin where cookies are blocked)
+  if (cachedCsrfToken) return cachedCsrfToken;
+  // Fallback to cookie (works same-origin / local dev)
+  return getCookieValue("csrf_token");
 }
 
 export class ApiError extends Error {
@@ -22,7 +33,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const method = (init.method ?? "GET").toUpperCase();
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
-    const csrf = getCookie("csrf_token");
+    const csrf = getCsrfToken();
     if (csrf) headers["x-csrf-token"] = csrf;
   }
 
@@ -31,6 +42,12 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers,
     credentials: "include",
   });
+
+  // Cache CSRF token from response header whenever the server sends it
+  const tokenFromHeader = res.headers.get("x-csrf-token");
+  if (tokenFromHeader) {
+    cachedCsrfToken = tokenFromHeader;
+  }
 
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
