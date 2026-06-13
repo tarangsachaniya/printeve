@@ -1,0 +1,82 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { Package, ChevronRight, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
+import type { Order } from "@/lib/types";
+import { formatPrice, cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+const STATUS_VARIANT: Record<Order["status"], "default" | "primary" | "secondary" | "accent" | "outline"> = {
+  pending: "outline",
+  confirmed: "primary",
+  printing: "secondary",
+  out_for_delivery: "secondary",
+  delivered: "accent",
+  cancelled: "default",
+};
+
+function formatStatus(status: string) {
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function OrdersPage() {
+  const [orders, setOrders] = React.useState<Order[] | null>(null);
+
+  React.useEffect(() => {
+    api
+      .get<Order[]>("/orders")
+      .then(setOrders)
+      .catch(() => setOrders([]));
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-3xl container-px py-10 lg:py-14">
+      <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">My Orders</h1>
+
+      <div className="mt-8">
+        {orders === null ? (
+          <div className="flex min-h-[40vh] items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-text-muted" />
+          </div>
+        ) : orders.length === 0 ? (
+          <Card className="flex flex-col items-center gap-3 p-10 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-surface">
+              <Package className="size-6 text-text-muted" />
+            </div>
+            <h2 className="text-lg font-semibold text-text">No orders yet</h2>
+            <p className="max-w-sm text-sm text-text-muted">
+              When you place an order, it will show up here with its status and tracking details.
+            </p>
+            <Button asChild className="mt-2">
+              <Link href="/products">Start an Order</Link>
+            </Button>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {orders.map((order) => (
+              <Link key={order.id} href={`/account/orders/${order.id}`}>
+                <Card className="flex items-center justify-between gap-4 p-4 transition-colors hover:border-primary/40">
+                  <div>
+                    <p className="text-sm font-semibold text-text">Order #{order.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="mt-0.5 text-xs text-text-muted">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Badge variant={STATUS_VARIANT[order.status] ?? "default"} className={cn("capitalize")}>
+                      {formatStatus(order.status)}
+                    </Badge>
+                    <p className="text-sm font-bold text-text">{formatPrice(order.total)}</p>
+                    <ChevronRight className="size-4 text-text-muted" />
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
