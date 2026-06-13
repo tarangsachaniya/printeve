@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -98,7 +99,7 @@ function LoginView({ onSuccess, onForgotPassword }: { onSuccess: () => void; onF
             Forgot password?
           </button>
         </div>
-        <Input id="login-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+        <PasswordInput id="login-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
       </div>
 
       {error && <p className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{error}</p>}
@@ -149,7 +150,7 @@ function RegisterView({ onSuccess }: { onSuccess: () => void }) {
       </div>
       <div>
         <Label className="mb-1.5 block" htmlFor="register-password">Password</Label>
-        <Input id="register-password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+        <PasswordInput id="register-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
       </div>
 
       {error && <p className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{error}</p>}

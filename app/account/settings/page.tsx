@@ -5,6 +5,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
@@ -59,15 +60,15 @@ export default function SettingsPage() {
           <form onSubmit={handlePasswordSubmit} className="flex max-w-md flex-col gap-4">
             <div>
               <Label className="mb-1.5 block" htmlFor="currentPassword">Current Password</Label>
-              <Input id="currentPassword" type="password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+              <PasswordInput id="currentPassword" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
             </div>
             <div>
               <Label className="mb-1.5 block" htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <PasswordInput id="newPassword" required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
             <div>
               <Label className="mb-1.5 block" htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <PasswordInput id="confirmPassword" required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             </div>
 
             {error && <p className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{error}</p>}

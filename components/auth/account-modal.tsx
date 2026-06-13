@@ -16,6 +16,7 @@ import type { Address } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -449,16 +450,16 @@ function SettingsTab() {
         <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
           <div>
             <Label className="mb-1.5 block" htmlFor="modal-currentPassword">Current Password</Label>
-            <Input id="modal-currentPassword" type="password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+            <PasswordInput id="modal-currentPassword" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="mb-1.5 block" htmlFor="modal-newPassword">New Password</Label>
-              <Input id="modal-newPassword" type="password" required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <PasswordInput id="modal-newPassword" required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
             <div>
               <Label className="mb-1.5 block" htmlFor="modal-confirmPassword">Confirm Password</Label>
-              <Input id="modal-confirmPassword" type="password" required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <PasswordInput id="modal-confirmPassword" required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             </div>
           </div>
 
