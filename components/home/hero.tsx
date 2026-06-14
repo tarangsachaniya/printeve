@@ -68,7 +68,7 @@ export function Hero() {
             <div className="grid grid-cols-2 gap-4">
               <div className="aspect-[3/4] rounded-xl border border-border bg-background shadow-[var(--shadow-card)] flex flex-col justify-between p-5">
                 <div className="flex-1 flex items-center justify-center pb-4">
-                  <BusinessCardSVG className="w-full h-full max-w-[120px]" />
+                  <BusinessCardSVG className="w-full h-full max-w-[180px]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Business Cards</p>
@@ -77,7 +77,7 @@ export function Hero() {
               </div>
               <div className="aspect-[3/4] rounded-xl border border-border bg-primary/5 shadow-[var(--shadow-card)] flex flex-col justify-between p-5 mt-8">
                 <div className="flex-1 flex items-center justify-center pb-4">
-                  <MarketingKitSVG className="w-full h-full max-w-[120px]" />
+                  <MarketingKitSVG className="w-full h-full max-w-[180px]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Marketing Kits</p>
@@ -86,7 +86,7 @@ export function Hero() {
               </div>
               <div className="aspect-[3/4] rounded-xl border border-border bg-secondary/5 shadow-[var(--shadow-card)] flex flex-col justify-between p-5 -mt-8">
                 <div className="flex-1 flex items-center justify-center pb-4">
-                  <PackagingSVG className="w-full h-full max-w-[120px]" />
+                  <PackagingSVG className="w-full h-full max-w-[180px]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Packaging</p>
@@ -95,7 +95,7 @@ export function Hero() {
               </div>
               <div className="aspect-[3/4] rounded-xl border border-border bg-background shadow-[var(--shadow-card)] flex flex-col justify-between p-5">
                 <div className="flex-1 flex items-center justify-center pb-4">
-                  <BannerSVG className="w-full h-full max-w-[120px]" />
+                  <BannerSVG className="w-full h-full max-w-[180px]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Banners</p>
