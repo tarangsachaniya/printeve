@@ -7,6 +7,7 @@ import type { Product, PriceBreakdown } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { estimatePrice, defaultOption } from "@/lib/pricing";
 import { useCart } from "@/lib/cart";
+import { useCity } from "@/lib/city";
 import { formatPrice, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +23,7 @@ function formatCompletion(minutes: number | null): string | null {
 export function ProductConfigurator({ product }: { product: Product }) {
   const router = useRouter();
   const { addItem } = useCart();
+  const { cityId } = useCity();
 
   const [sizeId, setSizeId] = React.useState(defaultOption(product.paper_sizes)?.id ?? "");
   const [typeId, setTypeId] = React.useState(defaultOption(product.paper_types)?.id ?? "");
@@ -36,8 +38,14 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const [added, setAdded] = React.useState(false);
 
   const selection = React.useMemo(
-    () => ({ paper_size_id: sizeId, paper_quality_id: qualityId || undefined, paper_type_id: typeId, quantity }),
-    [sizeId, qualityId, typeId, quantity]
+    () => ({
+      paper_size_id: sizeId,
+      paper_quality_id: qualityId || undefined,
+      paper_type_id: typeId,
+      quantity,
+      city_id: cityId || undefined,
+    }),
+    [sizeId, qualityId, typeId, quantity, cityId]
   );
 
   React.useEffect(() => {
@@ -63,7 +71,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sizeId, typeId, qualityId, quantity, product.id]);
+  }, [sizeId, typeId, qualityId, quantity, cityId, product.id]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -295,6 +303,12 @@ export function ProductConfigurator({ product }: { product: Product }) {
               <div className="flex justify-between">
                 <dt className="text-text-muted">Quantity discount/adjustment</dt>
                 <dd className="text-text">{formatPrice(breakdown.modifiers.quantity_slab.amount)}</dd>
+              </div>
+            )}
+            {breakdown.modifiers.city && breakdown.modifiers.city.amount !== 0 && (
+              <div className="flex justify-between">
+                <dt className="text-text-muted">Location adjustment</dt>
+                <dd className="text-text">{formatPrice(breakdown.modifiers.city.amount)}</dd>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-1.5 font-semibold">

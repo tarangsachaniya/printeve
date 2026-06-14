@@ -1,21 +1,21 @@
+import React from "react";
 import {
-  CreditCard,
-  FileText,
-  BookOpen,
-  Image as ImageIcon,
-  Flag,
-  Tag,
-  Package,
-  Megaphone,
-  Layers,
-  type LucideIcon,
-} from "lucide-react";
+  BusinessCardSVG,
+  FlyerSVG,
+  BrochureSVG,
+  PosterSVG,
+  BannerSVG,
+  StickerSVG,
+  PackagingSVG,
+  MarketingKitSVG,
+  BulkPrintingSVG,
+} from "@/components/ui/custom-svgs";
 
 export interface Category {
   slug: string;
   name: string;
   description: string;
-  icon: LucideIcon;
+  icon: React.ElementType<any>;
 }
 
 export const categories: Category[] = [
@@ -23,54 +23,54 @@ export const categories: Category[] = [
     slug: "business-cards",
     name: "Business Cards",
     description: "Premium finishes that make a strong first impression",
-    icon: CreditCard,
+    icon: BusinessCardSVG,
   },
   {
     slug: "flyers",
     name: "Flyers",
     description: "Eye-catching flyers for promotions and events",
-    icon: FileText,
+    icon: FlyerSVG,
   },
   {
     slug: "brochures",
     name: "Brochures",
     description: "Multi-fold brochures that tell your story",
-    icon: BookOpen,
+    icon: BrochureSVG,
   },
   {
     slug: "posters",
     name: "Posters",
     description: "Large-format posters with vibrant, sharp print",
-    icon: ImageIcon,
+    icon: PosterSVG,
   },
   {
     slug: "banners",
     name: "Banners",
     description: "Durable indoor and outdoor banners",
-    icon: Flag,
+    icon: BannerSVG,
   },
   {
     slug: "stickers",
     name: "Stickers",
     description: "Custom-shaped stickers and labels",
-    icon: Tag,
+    icon: StickerSVG,
   },
   {
     slug: "packaging",
     name: "Packaging Prints",
     description: "Branded boxes, mailers and packaging inserts",
-    icon: Package,
+    icon: PackagingSVG,
   },
   {
     slug: "marketing-materials",
     name: "Marketing Materials",
     description: "Catalogues, letterheads and promotional kits",
-    icon: Megaphone,
+    icon: MarketingKitSVG,
   },
   {
     slug: "bulk-printing",
     name: "Bulk Printing",
     description: "High-volume orders with volume discounts",
-    icon: Layers,
+    icon: BulkPrintingSVG,
   },
 ];

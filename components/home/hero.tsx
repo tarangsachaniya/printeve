@@ -2,6 +2,12 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck, Truck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trustBadges } from "@/data/content";
+import {
+  BusinessCardSVG,
+  MarketingKitSVG,
+  PackagingSVG,
+  BannerSVG,
+} from "@/components/ui/custom-svgs";
 
 export function Hero() {
   return (
@@ -60,25 +66,37 @@ export function Hero() {
 
           <div className="relative">
             <div className="grid grid-cols-2 gap-4">
-              <div className="aspect-[3/4] rounded-xl border border-border bg-background shadow-[var(--shadow-card)] flex items-end p-5">
+              <div className="aspect-[3/4] rounded-xl border border-border bg-background shadow-[var(--shadow-card)] flex flex-col justify-between p-5">
+                <div className="flex-1 flex items-center justify-center pb-4">
+                  <BusinessCardSVG className="w-full h-full max-w-[120px]" />
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Business Cards</p>
                   <p className="text-xs text-text-muted mt-1">Premium matte &amp; foil finishes</p>
                 </div>
               </div>
-              <div className="aspect-[3/4] rounded-xl border border-border bg-primary/5 shadow-[var(--shadow-card)] flex items-end p-5 mt-8">
+              <div className="aspect-[3/4] rounded-xl border border-border bg-primary/5 shadow-[var(--shadow-card)] flex flex-col justify-between p-5 mt-8">
+                <div className="flex-1 flex items-center justify-center pb-4">
+                  <MarketingKitSVG className="w-full h-full max-w-[120px]" />
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Marketing Kits</p>
                   <p className="text-xs text-text-muted mt-1">Flyers, brochures &amp; posters</p>
                 </div>
               </div>
-              <div className="aspect-[3/4] rounded-xl border border-border bg-secondary/5 shadow-[var(--shadow-card)] flex items-end p-5 -mt-8">
+              <div className="aspect-[3/4] rounded-xl border border-border bg-secondary/5 shadow-[var(--shadow-card)] flex flex-col justify-between p-5 -mt-8">
+                <div className="flex-1 flex items-center justify-center pb-4">
+                  <PackagingSVG className="w-full h-full max-w-[120px]" />
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Packaging</p>
                   <p className="text-xs text-text-muted mt-1">Branded boxes &amp; mailers</p>
                 </div>
               </div>
-              <div className="aspect-[3/4] rounded-xl border border-border bg-background shadow-[var(--shadow-card)] flex items-end p-5">
+              <div className="aspect-[3/4] rounded-xl border border-border bg-background shadow-[var(--shadow-card)] flex flex-col justify-between p-5">
+                <div className="flex-1 flex items-center justify-center pb-4">
+                  <BannerSVG className="w-full h-full max-w-[120px]" />
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text">Banners</p>
                   <p className="text-xs text-text-muted mt-1">Indoor &amp; outdoor durable print</p>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ChevronRight } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { Product } from "@/lib/types";
@@ -8,7 +9,9 @@ import { ProductConfigurator } from "@/components/products/product-configurator"
 
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    return await api.get<Product>(`/products/${id}`);
+    const cityId = (await cookies()).get("printeve_city_id")?.value;
+    const cityParam = cityId ? `?city_id=${encodeURIComponent(cityId)}` : "";
+    return await api.get<Product>(`/products/${id}${cityParam}`);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;

@@ -1,11 +1,14 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { api } from "@/lib/api";
 import type { Product, ProductListResponse } from "@/lib/types";
 import { ProductsExplorer } from "@/components/products/products-explorer";
 
 async function getProducts(): Promise<Product[]> {
   try {
-    const res = await api.get<ProductListResponse>("/products?page=1&limit=100");
+    const cityId = (await cookies()).get("printeve_city_id")?.value;
+    const cityParam = cityId ? `&city_id=${encodeURIComponent(cityId)}` : "";
+    const res = await api.get<ProductListResponse>(`/products?page=1&limit=100${cityParam}`);
     return res.items ?? [];
   } catch {
     return [];

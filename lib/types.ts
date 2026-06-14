@@ -39,6 +39,12 @@ export interface ProductListResponse {
   total: number;
 }
 
+export interface City {
+  id: string;
+  name: string;
+  state: string;
+}
+
 export interface PriceBreakdown {
   quantity: number;
   base_unit_price: number;

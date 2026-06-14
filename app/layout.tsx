@@ -3,8 +3,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
+import { CityProvider } from "@/lib/city";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { CityPickerDialog } from "@/components/layout/city-picker-dialog";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,9 +30,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-text">
         <AuthProvider>
           <CartProvider>
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
+            <CityProvider>
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+              <SiteFooter />
+              <CityPickerDialog />
+            </CityProvider>
           </CartProvider>
         </AuthProvider>
       </body>

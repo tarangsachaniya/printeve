@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Search, User, Menu, X, ChevronDown, Printer, MapPin, Settings, LogOut, UserCircle, Package } from "lucide-react";
 import { categories } from "@/data/categories";
 import { useAuth } from "@/lib/auth";
+import { useCity } from "@/lib/city";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { AccountModal } from "@/components/auth/account-modal";
 import { CartSheet } from "./cart-sheet";
@@ -27,6 +28,7 @@ export function SiteHeader() {
   const [accountOpen, setAccountOpen] = React.useState(false);
   const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
   const { user, logout } = useAuth();
+  const { cityName, openPicker } = useCity();
   const router = useRouter();
 
   function openAccountModal(tab: "profile" | "addresses" | "settings") {
@@ -66,6 +68,14 @@ export function SiteHeader() {
         <div className="mx-auto flex max-w-7xl items-center justify-between container-px py-2 text-xs text-text-muted">
           <p>Free design proofing on every order &middot; Pan-India delivery</p>
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={openPicker}
+              className="flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <MapPin className="size-3.5" />
+              {cityName ?? "Select city"}
+            </button>
             <a href="tel:+911234567890" className="hover:text-primary transition-colors">
               +91 12345 67890
             </a>
