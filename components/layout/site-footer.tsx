@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Printer, Mail, Phone, MapPin } from "lucide-react";
 import { categories } from "@/data/categories";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { SocialIcon, type SocialPlatform } from "@/components/ui/social-icon";
 
 const socialLinks: SocialPlatform[] = ["facebook", "instagram", "twitter", "linkedin"];
@@ -92,7 +90,10 @@ export function SiteFooter() {
                 </li>
               ))}
             </ul>
-            <h3 className="mt-6 text-sm font-semibold text-text">Company</h3>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-text">Company</h3>
             <ul className="mt-4 flex flex-col gap-2.5">
               {companyLinks.map((link) => (
                 <li key={link.href}>
@@ -104,18 +105,6 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-text">Stay Updated</h3>
-            <p className="mt-4 text-sm text-text-muted">
-              Subscribe for new product launches, offers and printing tips.
-            </p>
-            <form className="mt-4 flex flex-col gap-2">
-              <Input type="email" placeholder="Your email address" aria-label="Email address" />
-              <Button type="submit" className="w-full">
-                Subscribe
-              </Button>
-            </form>
-          </div>
         </div>
 
         <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
