@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
-import { categories } from "@/data/categories";
+import { useCategories } from "@/lib/category";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 12;
@@ -21,17 +21,10 @@ const sortOptions = [
   { value: "name-asc", label: "Name: A to Z" },
 ];
 
-function matchesCategory(product: Product, categorySlug: string): boolean {
-  const category = categories.find((c) => c.slug === categorySlug);
-  if (!category) return true;
-  const haystack = `${product.name} ${product.description ?? ""}`.toLowerCase();
-  const keyword = category.name.toLowerCase().replace(/s$/, "");
-  return haystack.includes(keyword);
-}
-
 export function ProductsExplorer({ products }: { products: Product[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { categories } = useCategories();
 
   const [search, setSearch] = React.useState(searchParams.get("search") ?? "");
   const [category, setCategory] = React.useState(searchParams.get("category") ?? "all");
@@ -53,10 +46,6 @@ export function ProductsExplorer({ products }: { products: Product[] }) {
       result = result.filter(
         (p) => p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q)
       );
-    }
-
-    if (category !== "all") {
-      result = result.filter((p) => matchesCategory(p, category));
     }
 
     const sorted = [...result];
@@ -118,7 +107,7 @@ export function ProductsExplorer({ products }: { products: Product[] }) {
           </button>
           {categories.map((cat) => (
             <button
-              key={cat.slug}
+              key={cat.id}
               onClick={() => handleCategoryChange(cat.slug)}
               className={cn(
                 "rounded-md px-3 py-2 text-left text-sm transition-colors",

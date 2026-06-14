@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, User, Menu, X, ChevronDown, Printer, MapPin, Settings, LogOut, UserCircle, Package } from "lucide-react";
-import { categories } from "@/data/categories";
+import { useCategories } from "@/lib/category";
+import { getCategoryIcon, getCategoryDescription } from "@/data/categories";
 import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -29,6 +30,7 @@ export function SiteHeader() {
   const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
   const { user, logout } = useAuth();
   const { cityName, openPicker } = useCity();
+  const { categories } = useCategories();
   const router = useRouter();
 
   function openAccountModal(tab: "profile" | "addresses" | "settings") {
@@ -99,12 +101,17 @@ export function SiteHeader() {
         <nav className="hidden lg:flex items-center gap-1 ml-4">
           <div
             className="relative"
-            onMouseEnter={() => setMegaOpen(true)}
-            onMouseLeave={() => setMegaOpen(false)}
+            onPointerEnter={(e) => {
+              if (e.pointerType === "mouse") setMegaOpen(true);
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === "mouse") setMegaOpen(false);
+            }}
           >
             <button
               className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface focus-ring"
               aria-expanded={megaOpen}
+              onClick={() => setMegaOpen((v) => !v)}
             >
               Products
               <ChevronDown className="size-4" />
@@ -112,25 +119,33 @@ export function SiteHeader() {
             {megaOpen && (
               <div className="absolute left-0 top-full w-[640px] rounded-lg border border-border bg-background p-5 shadow-[var(--shadow-card-hover)]">
                 <div className="grid grid-cols-3 gap-2">
-                  {categories.map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      href={`/products?category=${cat.slug}`}
-                      className="group flex items-start gap-3 rounded-md p-2.5 transition-colors hover:bg-surface"
-                    >
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                        <cat.icon className="size-4.5" />
-                      </span>
-                      <span>
-                        <span className="block text-sm font-medium text-text group-hover:text-primary">
-                          {cat.name}
+                  {categories.map((cat) => {
+                    const Icon = getCategoryIcon(cat.slug);
+                    return (
+                      <Link
+                        key={cat.slug}
+                        href={`/products?category=${cat.slug}`}
+                        className="group flex items-start gap-3 rounded-md p-2.5 transition-colors hover:bg-surface"
+                      >
+                        <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/10 text-primary">
+                          {cat.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={cat.image_url} alt="" className="size-full object-cover" />
+                          ) : (
+                            <Icon className="size-4.5" />
+                          )}
                         </span>
-                        <span className="block text-xs text-text-muted mt-0.5 line-clamp-1">
-                          {cat.description}
+                        <span>
+                          <span className="block text-sm font-medium text-text group-hover:text-primary">
+                            {cat.name}
+                          </span>
+                          <span className="block text-xs text-text-muted mt-0.5 line-clamp-1">
+                            {getCategoryDescription(cat.slug)}
+                          </span>
                         </span>
-                      </span>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
                 <div className="mt-3 border-t border-border pt-3">
                   <Link href="/products" className="text-sm font-medium text-primary hover:underline">
@@ -170,13 +185,18 @@ export function SiteHeader() {
           {user ? (
             <div
               className="relative"
-              onMouseEnter={() => setUserMenuOpen(true)}
-              onMouseLeave={() => setUserMenuOpen(false)}
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse") setUserMenuOpen(true);
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse") setUserMenuOpen(false);
+              }}
             >
               <button
                 className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium text-text transition-colors hover:bg-surface focus-ring"
                 aria-expanded={userMenuOpen}
                 aria-label="Account menu"
+                onClick={() => setUserMenuOpen((v) => !v)}
               >
                 <User className="size-5" />
                 <span className="hidden sm:inline">{user.fullName.split(" ")[0]}</span>
@@ -260,9 +280,11 @@ export function SiteHeader() {
                 />
               </div>
             </form>
-            <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
-              Categories
-            </p>
+            {categories.length > 0 && (
+              <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Categories
+              </p>
+            )}
             {categories.map((cat) => (
               <Link
                 key={cat.slug}
