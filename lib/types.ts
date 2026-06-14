@@ -16,6 +16,22 @@ export interface QuantitySlab {
   max_completion_minutes: number | null;
 }
 
+export interface CustomFieldOption {
+  id: string;
+  name: string;
+  price_modifier: number;
+  is_default: boolean;
+}
+
+export interface CustomField {
+  category_field_id: string;
+  key: string;
+  label: string;
+  field_type: "select" | "multi_select" | "boolean" | "number" | "text";
+  is_required: boolean;
+  options: CustomFieldOption[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -30,6 +46,7 @@ export interface Product {
   paper_qualities: VariantOption[];
   paper_types: VariantOption[];
   quantity_slabs: QuantitySlab[];
+  custom_fields: CustomField[];
   city_id: string | null;
   city_pricing_applied: boolean;
 }
@@ -54,6 +71,7 @@ export interface PriceBreakdown {
     paper_type: { id: string; name: string; amount: number } | null;
     quantity_slab: { amount: number } | null;
     city?: { amount: number } | null;
+    custom_fields?: { category_field_id: string; label: string; amount: number }[];
   };
   unit_price: number;
   total_price: number;
@@ -134,6 +152,7 @@ export interface CartItem {
     paper_size?: { id: string; name: string };
     paper_quality?: { id: string; name: string };
     paper_type?: { id: string; name: string };
+    custom_fields?: Record<string, { value: string | string[]; label: string; modifier: number }>;
   };
   artworkFileName?: string;
 }

@@ -65,6 +65,7 @@ export default function CartPage() {
                       item.selection.paper_size?.name,
                       item.selection.paper_type?.name,
                       item.selection.paper_quality?.name,
+                      ...Object.values(item.selection.custom_fields ?? {}).map((f) => f.label),
                     ]
                       .filter(Boolean)
                       .join(" · ")}

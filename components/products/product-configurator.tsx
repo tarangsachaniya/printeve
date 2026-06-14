@@ -37,6 +37,20 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const [file, setFile] = React.useState<File | null>(null);
   const [added, setAdded] = React.useState(false);
 
+  const [customFieldValues, setCustomFieldValues] = React.useState<Record<string, string | string[]>>(() => {
+    const initial: Record<string, string | string[]> = {};
+    for (const field of product.custom_fields ?? []) {
+      if (field.field_type === "multi_select") {
+        initial[field.category_field_id] = [];
+      } else if (field.field_type === "select" || field.field_type === "boolean") {
+        const def = field.options.find((o) => o.is_default) ?? field.options[0];
+        if (def) initial[field.category_field_id] = def.id;
+      }
+    }
+    return initial;
+  });
+  const [customFieldText, setCustomFieldText] = React.useState<Record<string, string>>({});
+
   const selection = React.useMemo(
     () => ({
       paper_size_id: sizeId,
@@ -44,8 +58,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
       paper_type_id: typeId,
       quantity,
       city_id: cityId || undefined,
+      custom_fields: customFieldValues,
     }),
-    [sizeId, qualityId, typeId, quantity, cityId]
+    [sizeId, qualityId, typeId, quantity, cityId, customFieldValues]
   );
 
   React.useEffect(() => {
@@ -71,7 +86,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sizeId, typeId, qualityId, quantity, cityId, product.id]);
+  }, [sizeId, typeId, qualityId, quantity, cityId, customFieldValues, product.id]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -85,6 +100,36 @@ export function ProductConfigurator({ product }: { product: Product }) {
     const type = product.paper_types.find((t) => t.id === typeId);
     const quality = product.paper_qualities.find((q) => q.id === qualityId);
 
+    const customFields: Record<string, { value: string | string[]; label: string; modifier: number }> = {};
+    for (const field of product.custom_fields ?? []) {
+      if (field.field_type === "select" || field.field_type === "boolean") {
+        const id = customFieldValues[field.category_field_id] as string | undefined;
+        const opt = field.options.find((o) => o.id === id) ?? field.options.find((o) => o.is_default);
+        if (opt) {
+          customFields[field.category_field_id] = {
+            value: opt.id,
+            label: `${field.label}: ${opt.name}`,
+            modifier: Number(opt.price_modifier),
+          };
+        }
+      } else if (field.field_type === "multi_select") {
+        const ids = (customFieldValues[field.category_field_id] as string[]) ?? [];
+        const opts = field.options.filter((o) => ids.includes(o.id));
+        if (opts.length > 0) {
+          customFields[field.category_field_id] = {
+            value: ids,
+            label: `${field.label}: ${opts.map((o) => o.name).join(", ")}`,
+            modifier: opts.reduce((sum, o) => sum + Number(o.price_modifier), 0),
+          };
+        }
+      } else {
+        const text = customFieldText[field.category_field_id];
+        if (text) {
+          customFields[field.category_field_id] = { value: text, label: `${field.label}: ${text}`, modifier: 0 };
+        }
+      }
+    }
+
     addItem({
       productId: product.id,
       name: product.name,
@@ -97,6 +142,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
         paper_size: size ? { id: size.id, name: size.name } : undefined,
         paper_quality: quality ? { id: quality.id, name: quality.name } : undefined,
         paper_type: type ? { id: type.id, name: type.name } : undefined,
+        custom_fields: Object.keys(customFields).length > 0 ? customFields : undefined,
       },
       artworkFileName: file?.name,
     });
@@ -200,6 +246,95 @@ export function ProductConfigurator({ product }: { product: Product }) {
           </Select>
         </div>
       )}
+
+      {/* Category-specific fields */}
+      {(product.custom_fields ?? []).map((field) => {
+        if (field.field_type === "select" || field.field_type === "boolean") {
+          const value = (customFieldValues[field.category_field_id] as string) ?? "";
+          return (
+            <div key={field.category_field_id}>
+              <Label className="mb-2 block">
+                {field.label}
+                {field.is_required ? " *" : ""}
+              </Label>
+              <Select
+                value={value}
+                onValueChange={(v) =>
+                  setCustomFieldValues((prev) => ({ ...prev, [field.category_field_id]: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {field.options.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.name}
+                      {opt.price_modifier !== 0 &&
+                        ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          );
+        }
+
+        if (field.field_type === "multi_select") {
+          const values = (customFieldValues[field.category_field_id] as string[]) ?? [];
+          return (
+            <div key={field.category_field_id}>
+              <Label className="mb-2 block">
+                {field.label}
+                {field.is_required ? " *" : ""}
+              </Label>
+              <div className="flex flex-col gap-2">
+                {field.options.map((opt) => {
+                  const checked = values.includes(opt.id);
+                  return (
+                    <label key={opt.id} className="flex items-center gap-2 text-sm text-text">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setCustomFieldValues((prev) => {
+                            const current = (prev[field.category_field_id] as string[]) ?? [];
+                            const next = e.target.checked
+                              ? [...current, opt.id]
+                              : current.filter((id) => id !== opt.id);
+                            return { ...prev, [field.category_field_id]: next };
+                          });
+                        }}
+                        className="size-4 accent-primary"
+                      />
+                      {opt.name}
+                      {opt.price_modifier !== 0 &&
+                        ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div key={field.category_field_id}>
+            <Label className="mb-2 block">
+              {field.label}
+              {field.is_required ? " *" : ""}
+            </Label>
+            <input
+              type={field.field_type === "number" ? "number" : "text"}
+              value={customFieldText[field.category_field_id] ?? ""}
+              onChange={(e) =>
+                setCustomFieldText((prev) => ({ ...prev, [field.category_field_id]: e.target.value }))
+              }
+              className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring"
+            />
+          </div>
+        );
+      })}
 
       {/* Quantity */}
       <div>
@@ -311,6 +446,12 @@ export function ProductConfigurator({ product }: { product: Product }) {
                 <dd className="text-text">{formatPrice(breakdown.modifiers.city.amount)}</dd>
               </div>
             )}
+            {breakdown.modifiers.custom_fields?.map((row) => (
+              <div key={row.category_field_id} className="flex justify-between">
+                <dt className="text-text-muted">{row.label}</dt>
+                <dd className="text-text">{formatPrice(row.amount)}</dd>
+              </div>
+            ))}
             <div className="flex justify-between border-t border-border pt-1.5 font-semibold">
               <dt className="text-text">Unit price</dt>
               <dd className="text-text">{formatPrice(breakdown.unit_price)}</dd>
