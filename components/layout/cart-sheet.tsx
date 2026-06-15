@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ShoppingCart, X } from "lucide-react";
@@ -14,9 +15,11 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function CartSheet() {
   const { items, itemCount, subtotal, removeItem, selectionKey } = useCart();
+  const [removeKey, setRemoveKey] = React.useState<string | null>(null);
 
   return (
     <Sheet>
@@ -79,7 +82,7 @@ export function CartSheet() {
                         </p>
                       </div>
                       <button
-                        onClick={() => removeItem(item.productId, key)}
+                        onClick={() => setRemoveKey(key)}
                         className="self-start rounded-md p-1 text-text-muted hover:bg-surface hover:text-danger focus-ring"
                         aria-label={`Remove ${item.name}`}
                       >
@@ -111,6 +114,19 @@ export function CartSheet() {
           </>
         )}
       </SheetContent>
+
+      <ConfirmDialog
+        open={removeKey !== null}
+        onOpenChange={(open) => !open && setRemoveKey(null)}
+        title="Remove item?"
+        description="This item will be removed from your cart."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          const item = items.find((i) => selectionKey(i) === removeKey);
+          if (item) removeItem(item.productId, selectionKey(item));
+          setRemoveKey(null);
+        }}
+      />
     </Sheet>
   );
 }

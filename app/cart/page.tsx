@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, FileText } from "lucide-react";
@@ -7,12 +8,14 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const FREE_DELIVERY_THRESHOLD = 1000;
 const DELIVERY_FEE = 99;
 
 export default function CartPage() {
   const { items, subtotal, updateQuantity, removeItem, selectionKey } = useCart();
+  const [removeKey, setRemoveKey] = React.useState<string | null>(null);
 
   if (items.length === 0) {
     return (
@@ -101,7 +104,7 @@ export default function CartPage() {
                   </div>
                   <p className="text-base font-bold text-text">{formatPrice(item.totalPrice)}</p>
                   <button
-                    onClick={() => removeItem(item.productId, key)}
+                    onClick={() => setRemoveKey(key)}
                     className="flex items-center gap-1 text-xs text-text-muted transition-colors hover:text-danger"
                   >
                     <Trash2 className="size-3.5" /> Remove
@@ -146,6 +149,19 @@ export default function CartPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={removeKey !== null}
+        onOpenChange={(open) => !open && setRemoveKey(null)}
+        title="Remove item?"
+        description="This item will be removed from your cart."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          const item = items.find((i) => selectionKey(i) === removeKey);
+          if (item) removeItem(item.productId, selectionKey(item));
+          setRemoveKey(null);
+        }}
+      />
     </div>
   );
 }

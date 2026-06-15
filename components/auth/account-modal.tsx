@@ -28,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface AccountModalProps {
   open: boolean;
@@ -194,6 +195,8 @@ function AddressesTab() {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<Omit<Address, "id">>(EMPTY_FORM);
   const [profileDefaults, setProfileDefaults] = React.useState({ fullName: "", phone: "" });
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   React.useEffect(() => {
     api
@@ -260,11 +263,15 @@ function AddressesTab() {
 
   async function handleDelete(id: string) {
     setError(null);
+    setDeleting(true);
     try {
       await api.delete(`/account/addresses/${id}`);
       setAddresses((prev) => prev.filter((a) => a.id !== id));
+      setDeleteId(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to delete address. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -318,7 +325,7 @@ function AddressesTab() {
                   <button onClick={() => openEditDialog(address)} className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface hover:text-primary" aria-label="Edit address">
                     <Pencil className="size-3.5" />
                   </button>
-                  <button onClick={() => handleDelete(address.id)} className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface hover:text-danger" aria-label="Delete address">
+                  <button onClick={() => setDeleteId(address.id)} className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface hover:text-danger" aria-label="Delete address">
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
@@ -396,6 +403,16 @@ function AddressesTab() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title="Delete address?"
+        description="This address will be permanently removed from your account."
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={() => deleteId && handleDelete(deleteId)}
+      />
     </div>
   );
 }
