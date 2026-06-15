@@ -28,12 +28,16 @@ function makeKey(item: CartItem): string {
     })
     .join("|");
 
+  const dims = item.selection.custom_dimensions;
+  const dimsKey = dims ? `${dims.width}x${dims.height}${dims.unit}` : "";
+
   return [
     item.productId,
     item.selection.paper_size?.id ?? "",
     item.selection.paper_quality?.id ?? "",
     item.selection.paper_type?.id ?? "",
     customFieldsKey,
+    dimsKey,
   ].join("::");
 }
 

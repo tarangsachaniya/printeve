@@ -3,15 +3,17 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Clock, CheckCircle2, FileText, Minus, Plus, ShoppingCart, Loader2 } from "lucide-react";
-import type { Product, PriceBreakdown } from "@/lib/types";
+import type { Product, PriceBreakdown, DimensionUnit } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { estimatePrice, defaultOption } from "@/lib/pricing";
 import { useCart } from "@/lib/cart";
 import { useCity } from "@/lib/city";
 import { formatPrice, cn } from "@/lib/utils";
+import { convertDimension, isCustomSize, DIMENSION_UNITS } from "@/lib/units";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 function formatCompletion(minutes: number | null): string | null {
   if (!minutes) return null;
@@ -26,6 +28,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const { cityId } = useCity();
 
   const [sizeId, setSizeId] = React.useState(defaultOption(product.paper_sizes)?.id ?? "");
+  const [customWidth, setCustomWidth] = React.useState("");
+  const [customHeight, setCustomHeight] = React.useState("");
+  const [customUnit, setCustomUnit] = React.useState<DimensionUnit>("cm");
   const [typeId, setTypeId] = React.useState(defaultOption(product.paper_types)?.id ?? "");
   const [qualityId, setQualityId] = React.useState(defaultOption(product.paper_qualities)?.id ?? "");
   const [quantity, setQuantity] = React.useState(product.quantity_slabs[0]?.min_qty ?? 1);
@@ -88,9 +93,19 @@ export function ProductConfigurator({ product }: { product: Product }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizeId, typeId, qualityId, quantity, cityId, customFieldValues, product.id]);
 
+  const showCustomDimensions = isCustomSize(product.paper_sizes.find((s) => s.id === sizeId)?.name);
+  const customDimensionsValid =
+    !showCustomDimensions || (Number(customWidth) > 0 && Number(customHeight) > 0);
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (f) setFile(f);
+  }
+
+  function handleCustomUnitChange(nextUnit: DimensionUnit) {
+    setCustomWidth((w) => (w ? String(convertDimension(Number(w), customUnit, nextUnit)) : w));
+    setCustomHeight((h) => (h ? String(convertDimension(Number(h), customUnit, nextUnit)) : h));
+    setCustomUnit(nextUnit);
   }
 
   function handleAddToCart() {
@@ -143,6 +158,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
         paper_quality: quality ? { id: quality.id, name: quality.name } : undefined,
         paper_type: type ? { id: type.id, name: type.name } : undefined,
         custom_fields: Object.keys(customFields).length > 0 ? customFields : undefined,
+        custom_dimensions: showCustomDimensions
+          ? { width: Number(customWidth), height: Number(customHeight), unit: customUnit }
+          : undefined,
       },
       artworkFileName: file?.name,
     });
@@ -153,7 +171,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
   const completion = formatCompletion(breakdown?.max_completion_minutes ?? null);
   const matchedSlab = breakdown?.matched_slab;
-  const canAddToCart = !!breakdown && !priceError;
+  const canAddToCart = !!breakdown && !priceError && customDimensionsValid;
 
   return (
     <div className="flex flex-col gap-6">
@@ -202,6 +220,65 @@ export function ProductConfigurator({ product }: { product: Product }) {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* Custom dimensions */}
+      {showCustomDimensions && (
+        <div>
+          <Label className="mb-2 block">Custom Size</Label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Width"
+                value={customWidth}
+                onChange={(e) => setCustomWidth(e.target.value)}
+                aria-label="Custom width"
+              />
+            </div>
+            <span className="text-sm text-text-muted">×</span>
+            <div className="flex-1">
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Height"
+                value={customHeight}
+                onChange={(e) => setCustomHeight(e.target.value)}
+                aria-label="Custom height"
+              />
+            </div>
+            <Select value={customUnit} onValueChange={(v) => handleCustomUnitChange(v as DimensionUnit)}>
+              <SelectTrigger className="w-20 shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DIMENSION_UNITS.map((u) => (
+                  <SelectItem key={u} value={u}>
+                    {u}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!customDimensionsValid && (
+            <p className="mt-1.5 text-xs text-danger">Enter the width and height for your custom size.</p>
+          )}
+          {customDimensionsValid && customUnit !== "in" && (
+            <p className="mt-1.5 text-xs text-text-muted">
+              ≈ {convertDimension(Number(customWidth), customUnit, "in")} ×{" "}
+              {convertDimension(Number(customHeight), customUnit, "in")} in
+            </p>
+          )}
+          {customDimensionsValid && customUnit === "in" && (
+            <p className="mt-1.5 text-xs text-text-muted">
+              ≈ {convertDimension(Number(customWidth), customUnit, "cm")} ×{" "}
+              {convertDimension(Number(customHeight), customUnit, "cm")} cm
+            </p>
+          )}
         </div>
       )}
 

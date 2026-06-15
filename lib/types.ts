@@ -140,6 +140,14 @@ export interface Address {
   isDefault?: boolean;
 }
 
+export type DimensionUnit = "mm" | "cm" | "in";
+
+export interface CustomDimensions {
+  width: number;
+  height: number;
+  unit: DimensionUnit;
+}
+
 export interface CartItem {
   productId: string;
   name: string;
@@ -153,6 +161,7 @@ export interface CartItem {
     paper_quality?: { id: string; name: string };
     paper_type?: { id: string; name: string };
     custom_fields?: Record<string, { value: string | string[]; label: string; modifier: number }>;
+    custom_dimensions?: CustomDimensions;
   };
   artworkFileName?: string;
 }

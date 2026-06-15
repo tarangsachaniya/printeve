@@ -60,7 +60,7 @@ function calculateCustomFieldModifiers(
 /** Client-side estimate mirroring the server PricingService formula, used for instant feedback before the API confirms. */
 export function estimatePrice(product: Product, selection: PriceSelection): PriceBreakdown | null {
   const slab = findSlab(product.quantity_slabs, selection.quantity);
-  if (!slab) return null;
+  if (product.quantity_slabs.length > 0 && !slab) return null;
 
   const size = findOption(product.paper_sizes, selection.paper_size_id);
   let quality = findOption(product.paper_qualities, selection.paper_quality_id);
@@ -69,14 +69,15 @@ export function estimatePrice(product: Product, selection: PriceSelection): Pric
   }
   const type = findOption(product.paper_types, selection.paper_type_id);
 
-  if (!size || !type) return null;
+  if (product.paper_sizes.length > 0 && !size) return null;
+  if (product.paper_types.length > 0 && !type) return null;
   if (product.paper_qualities.length > 0 && !quality) return null;
 
   const basePrice = Number(product.base_price);
-  const sizeMod = Number(size.price_modifier);
+  const sizeMod = size ? Number(size.price_modifier) : 0;
   const qualityMod = quality ? Number(quality.price_modifier) : 0;
-  const typeMod = Number(type.price_modifier);
-  const slabMod = Number(slab.price_modifier ?? 0);
+  const typeMod = type ? Number(type.price_modifier) : 0;
+  const slabMod = slab ? Number(slab.price_modifier ?? 0) : 0;
   const customFields = calculateCustomFieldModifiers(product.custom_fields ?? [], selection.custom_fields);
 
   const unitPrice = basePrice + sizeMod + qualityMod + typeMod + slabMod + customFields.total;
@@ -85,16 +86,16 @@ export function estimatePrice(product: Product, selection: PriceSelection): Pric
     quantity: selection.quantity,
     base_unit_price: basePrice,
     modifiers: {
-      paper_size: { id: size.id, name: size.name, amount: sizeMod },
+      paper_size: size ? { id: size.id, name: size.name, amount: sizeMod } : null,
       paper_quality: quality ? { id: quality.id, name: quality.name, amount: qualityMod } : null,
-      paper_type: { id: type.id, name: type.name, amount: typeMod },
-      quantity_slab: { amount: slabMod },
+      paper_type: type ? { id: type.id, name: type.name, amount: typeMod } : null,
+      quantity_slab: slab ? { amount: slabMod } : null,
       custom_fields: customFields.rows,
     },
     unit_price: unitPrice,
     total_price: unitPrice * selection.quantity,
-    matched_slab: { min_qty: slab.min_qty, max_qty: slab.max_qty },
-    max_completion_minutes: slab.max_completion_minutes ?? null,
+    matched_slab: slab ? { min_qty: slab.min_qty, max_qty: slab.max_qty } : null,
+    max_completion_minutes: slab?.max_completion_minutes ?? null,
   };
 }
 

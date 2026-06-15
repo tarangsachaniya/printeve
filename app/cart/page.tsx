@@ -66,6 +66,8 @@ export default function CartPage() {
                   <p className="mt-1 text-xs text-text-muted">
                     {[
                       item.selection.paper_size?.name,
+                      item.selection.custom_dimensions &&
+                        `${item.selection.custom_dimensions.width} × ${item.selection.custom_dimensions.height} ${item.selection.custom_dimensions.unit}`,
                       item.selection.paper_type?.name,
                       item.selection.paper_quality?.name,
                       ...Object.values(item.selection.custom_fields ?? {}).map((f) => f.label),
