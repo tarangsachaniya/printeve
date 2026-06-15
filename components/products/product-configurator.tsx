@@ -74,7 +74,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
     const timeout = setTimeout(async () => {
       setLoadingPrice(true);
       try {
-        const data = await api.post<PriceBreakdown>(`/products/${product.id}/price`, selection);
+        const data = await api.post<PriceBreakdown>(`/products/${product.slug}/price`, selection);
         setBreakdown(data);
         setPriceError(null);
       } catch (err) {

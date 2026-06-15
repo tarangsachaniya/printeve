@@ -45,7 +45,7 @@ export default function SavedDesignsPage() {
                 </p>
               </div>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/products/${item.productId}`}>Reorder</Link>
+                <Link href={`/products/${item.slug}`}>Reorder</Link>
               </Button>
             </Card>
           ))}

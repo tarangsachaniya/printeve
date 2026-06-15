@@ -7,20 +7,20 @@ import type { Product } from "@/lib/types";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductConfigurator } from "@/components/products/product-configurator";
 
-async function getProduct(id: string): Promise<Product | null> {
+async function getProduct(slug: string): Promise<Product | null> {
   try {
     const cityId = (await cookies()).get("printeve_city_id")?.value;
     const cityParam = cityId ? `?city_id=${encodeURIComponent(cityId)}` : "";
-    return await api.get<Product>(`/products/${id}${cityParam}`);
+    return await api.get<Product>(`/products/${slug}${cityParam}`);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
 }
 
-export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const product = await getProduct(id);
+export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = await getProduct(slug);
 
   if (!product) notFound();
 
