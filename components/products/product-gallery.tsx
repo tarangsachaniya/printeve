@@ -1,21 +1,52 @@
 "use client";
 
 import * as React from "react";
+import { Play } from "lucide-react";
 import { ProductImage } from "@/components/product-image";
 import { cn } from "@/lib/utils";
 
-export function ProductGallery({ images, name }: { images: string[]; name: string }) {
+type MediaItem = { type: "image"; url: string } | { type: "video"; url: string };
+
+export function ProductGallery({
+  images,
+  videoUrl,
+  name,
+}: {
+  images: string[];
+  videoUrl?: string | null;
+  name: string;
+}) {
   const [active, setActive] = React.useState(0);
-  const gallery = images.length > 0 ? images : [""];
+
+  const media: MediaItem[] = [
+    ...(images.length > 0 ? images : [""]).map((url) => ({ type: "image" as const, url })),
+    ...(videoUrl ? [{ type: "video" as const, url: videoUrl }] : []),
+  ];
+
+  const activeItem = media[active];
 
   return (
     <div className="flex flex-col gap-3">
       <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-border bg-surface">
-        <ProductImage src={gallery[active]} alt={name} sizes="(max-width: 1024px) 100vw, 50vw" />
+        {activeItem.type === "video" ? (
+          <video
+            key={activeItem.url}
+            src={activeItem.url}
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <ProductImage src={activeItem.url} alt={name} sizes="(max-width: 1024px) 100vw, 50vw" />
+        )}
       </div>
-      {gallery.length > 1 && (
+
+      {media.length > 1 && (
         <div className="flex gap-3 overflow-x-auto">
-          {gallery.map((img, i) => (
+          {media.map((item, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
@@ -23,9 +54,15 @@ export function ProductGallery({ images, name }: { images: string[]; name: strin
                 "relative size-16 shrink-0 overflow-hidden rounded-md border bg-surface transition-colors",
                 active === i ? "border-primary" : "border-border hover:border-primary/50"
               )}
-              aria-label={`View image ${i + 1}`}
+              aria-label={item.type === "video" ? "Play video" : `View image ${i + 1}`}
             >
-              <ProductImage src={img} alt={`${name} ${i + 1}`} sizes="64px" />
+              {item.type === "video" ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                  <Play className="size-6 text-white fill-white" />
+                </div>
+              ) : (
+                <ProductImage src={item.url} alt={`${name} ${i + 1}`} sizes="64px" />
+              )}
             </button>
           ))}
         </div>

@@ -39,7 +39,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </nav>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <ProductGallery images={product.images ?? []} name={product.name} />
+        <ProductGallery images={product.images ?? []} videoUrl={product.video_url} name={product.name} />
         <ProductConfigurator product={product} />
       </div>
 
