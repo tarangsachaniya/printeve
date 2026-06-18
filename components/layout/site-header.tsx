@@ -4,8 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, User, Menu, X, ChevronDown, Printer, MapPin, Settings, LogOut, UserCircle, Package } from "lucide-react";
-import { useCategories } from "@/lib/category";
-import { getCategoryIcon, getCategoryDescription } from "@/data/categories";
+import { useNavbarProducts } from "@/lib/settings";
 import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -30,7 +29,7 @@ export function SiteHeader() {
   const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
   const { user, logout } = useAuth();
   const { cityName, openPicker } = useCity();
-  const { categories } = useCategories();
+  const { products: navbarProducts } = useNavbarProducts();
   const router = useRouter();
 
   function openAccountModal(tab: "profile" | "addresses" | "settings") {
@@ -62,7 +61,7 @@ export function SiteHeader() {
     <header
       className={cn(
         "sticky top-0 z-40 w-full border-b border-border bg-background transition-shadow",
-        scrolled && "shadow-[var(--shadow-card)]"
+        scrolled && "shadow-[var(--shadow-card)] backdrop-blur-md bg-background/80"
       )}
     >
       {/* Top bar */}
@@ -99,62 +98,65 @@ export function SiteHeader() {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-1 ml-4">
-          <div
-            className="relative"
-            onPointerEnter={(e) => {
-              if (e.pointerType === "mouse") setMegaOpen(true);
-            }}
-            onPointerLeave={(e) => {
-              if (e.pointerType === "mouse") setMegaOpen(false);
-            }}
-          >
-            <button
-              className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface focus-ring"
-              aria-expanded={megaOpen}
-              onClick={() => setMegaOpen((v) => !v)}
+          {navbarProducts.length > 0 && (
+            <div
+              className="relative"
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse") setMegaOpen(true);
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse") setMegaOpen(false);
+              }}
             >
-              Products
-              <ChevronDown className="size-4" />
-            </button>
-            {megaOpen && (
-              <div className="absolute left-0 top-full w-[640px] rounded-lg border border-border bg-background p-5 shadow-[var(--shadow-card-hover)]">
-                <div className="grid grid-cols-3 gap-2">
-                  {categories.map((cat) => {
-                    const Icon = getCategoryIcon(cat.slug);
-                    return (
+              <button
+                className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface focus-ring"
+                aria-expanded={megaOpen}
+                onClick={() => setMegaOpen((v) => !v)}
+              >
+                Products
+                <ChevronDown className="size-4" />
+              </button>
+              {megaOpen && (
+                <div className="absolute left-0 top-full w-[560px] rounded-lg border border-border bg-background p-5 shadow-[var(--shadow-card-hover)]">
+                  <div className="grid grid-cols-2 gap-2">
+                    {navbarProducts.map((product) => (
                       <Link
-                        key={cat.slug}
-                        href={`/products?category=${cat.slug}`}
-                        className="group flex items-start gap-3 rounded-md p-2.5 transition-colors hover:bg-surface"
+                        key={product.slug}
+                        href={`/products/${product.slug}`}
+                        className="group flex items-center gap-3 rounded-md p-2.5 transition-colors hover:bg-surface"
+                        onClick={() => setMegaOpen(false)}
                       >
-                        <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/10 text-primary">
-                          {cat.image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={cat.image_url} alt="" className="size-full object-cover" />
-                          ) : (
-                            <Icon className="size-4.5" />
-                          )}
-                        </span>
-                        <span>
-                          <span className="block text-sm font-medium text-text group-hover:text-primary">
-                            {cat.name}
+                        {product.images?.[0] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.images[0]}
+                            alt=""
+                            className="size-10 shrink-0 rounded-md object-cover bg-muted"
+                          />
+                        ) : (
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                            <Package className="size-5" />
                           </span>
-                          <span className="block text-xs text-text-muted mt-0.5 line-clamp-1">
-                            {getCategoryDescription(cat.slug)}
-                          </span>
+                        )}
+                        <span className="text-sm font-medium text-text group-hover:text-primary line-clamp-2">
+                          {product.name}
                         </span>
                       </Link>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  <div className="mt-3 border-t border-border pt-3">
+                    <Link
+                      href="/products"
+                      className="text-sm font-medium text-primary hover:underline"
+                      onClick={() => setMegaOpen(false)}
+                    >
+                      View all products &rarr;
+                    </Link>
+                  </div>
                 </div>
-                <div className="mt-3 border-t border-border pt-3">
-                  <Link href="/products" className="text-sm font-medium text-primary hover:underline">
-                    View all products &rarr;
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {navLinks.slice(1).map((link) => (
             <Link
@@ -280,19 +282,19 @@ export function SiteHeader() {
                 />
               </div>
             </form>
-            {categories.length > 0 && (
+            {navbarProducts.length > 0 && (
               <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                Categories
+                Products
               </p>
             )}
-            {categories.map((cat) => (
+            {navbarProducts.map((product) => (
               <Link
-                key={cat.slug}
-                href={`/products?category=${cat.slug}`}
+                key={product.slug}
+                href={`/products/${product.slug}`}
                 className="rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface"
                 onClick={() => setMobileOpen(false)}
               >
-                {cat.name}
+                {product.name}
               </Link>
             ))}
             <div className="mt-2 border-t border-border pt-2 flex flex-col gap-1">

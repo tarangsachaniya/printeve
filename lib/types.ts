@@ -24,10 +24,10 @@ export interface CustomFieldOption {
 }
 
 export interface CustomField {
-  category_field_id: string;
+  product_field_id: string;
   key: string;
   label: string;
-  field_type: "select" | "multi_select" | "boolean" | "number" | "text";
+  field_type: "select" | "multi_select" | "boolean" | "number" | "text" | "textarea" | "file_upload" | "radio";
   is_required: boolean;
   options: CustomFieldOption[];
 }
@@ -37,7 +37,6 @@ export interface Product {
   name: string;
   slug: string;
   base_price: number;
-  category_id: string | null;
   description: string | null;
   images: string[];
   video_url: string | null;
@@ -71,7 +70,7 @@ export interface PriceBreakdown {
     paper_type: { id: string; name: string; amount: number } | null;
     quantity_slab: { amount: number } | null;
     city?: { amount: number } | null;
-    custom_fields?: { category_field_id: string; label: string; amount: number }[];
+    custom_fields?: { product_field_id: string; label: string; amount: number }[];
   };
   unit_price: number;
   total_price: number;

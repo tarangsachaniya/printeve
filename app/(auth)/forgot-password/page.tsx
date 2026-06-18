@@ -35,8 +35,8 @@ export default function ForgotPasswordPage() {
     return (
       <Card>
         <CardContent className="pt-6 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent/10">
-            <Mail className="size-6 text-accent" />
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10">
+            <Mail className="size-6 text-primary" />
           </div>
           <h1 className="mt-4 text-lg font-semibold text-text">Check your inbox</h1>
           <p className="mt-2 text-sm text-text-muted">

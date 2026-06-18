@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Printer, Mail, Phone, MapPin } from "lucide-react";
-import { useCategories } from "@/lib/category";
 import { SocialIcon, type SocialPlatform } from "@/components/ui/social-icon";
 
 const socialLinks: SocialPlatform[] = ["facebook", "instagram", "twitter", "linkedin"];
@@ -23,12 +22,10 @@ const companyLinks = [
 ];
 
 export function SiteFooter() {
-  const { categories } = useCategories();
-
   return (
     <footer className="border-t border-border bg-surface">
       <div className="mx-auto max-w-7xl container-px py-12">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
               <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -66,24 +63,6 @@ export function SiteFooter() {
               ))}
             </div>
           </div>
-
-          {categories.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-text">Products</h3>
-              <ul className="mt-4 flex flex-col gap-2.5">
-                {categories.slice(0, 6).map((cat) => (
-                  <li key={cat.id}>
-                    <Link
-                      href={`/products?category=${cat.slug}`}
-                      className="text-sm text-text-muted hover:text-primary transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           <div>
             <h3 className="text-sm font-semibold text-text">Support</h3>

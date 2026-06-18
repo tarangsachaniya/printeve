@@ -114,8 +114,8 @@ export default function CheckoutPage() {
   if (placed) {
     return (
       <div className="mx-auto max-w-2xl container-px py-24 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-accent/10">
-          <Check className="size-8 text-accent" />
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
+          <Check className="size-8 text-primary" />
         </div>
         <h1 className="mt-5 text-2xl font-bold text-text">Order placed successfully!</h1>
         <p className="mt-2 text-sm text-text-muted">
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
                   isActive
                     ? "border-primary bg-primary text-primary-foreground"
                     : isDone
-                    ? "border-accent bg-accent text-accent-foreground"
+                    ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-text-muted"
                 )}
               >

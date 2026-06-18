@@ -2,17 +2,20 @@
 @import "tw-animate-css";
 
 @theme {
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
+  --color-primary: #16A34A;
+  --color-primary-hover: #15803D;
+  --color-primary-active: #166534;
   --color-primary-foreground: #ffffff;
+  --color-primary-soft: #DCFCE7;
+  --color-primary-soft-fg: #166534;
 
-  --color-secondary: #f97316;
-  --color-secondary-hover: #ea580c;
+  --color-secondary: #22C55E;
+  --color-secondary-hover: #16A34A;
   --color-secondary-foreground: #ffffff;
 
-  --color-accent: #10b981;
-  --color-accent-hover: #059669;
-  --color-accent-foreground: #ffffff;
+  --color-accent: #DCFCE7;
+  --color-accent-hover: #BBF7D0;
+  --color-accent-foreground: #166534;
 
   --color-background: #ffffff;
   --color-surface: #f8fafc;
@@ -29,11 +32,17 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
 
   --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
   --shadow-card-hover: 0 8px 24px -4px rgb(15 23 42 / 0.10), 0 2px 8px -2px rgb(15 23 42 / 0.06);
+  --shadow-brand: 0 8px 24px -6px rgb(22 163 74 / 0.35);
 
-  --animate-marquee: marquee 40s linear infinite;
+  --gradient-hero: radial-gradient(60% 80% at 80% 0%, rgb(220 252 231 / 0.5) 0%, transparent 60%), linear-gradient(180deg, #F0FDF4 0%, #FFFFFF 55%);
+  --gradient-brand: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+
+  --animate-marquee: marquee 48s linear infinite;
 }
 
 @keyframes marquee {

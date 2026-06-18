@@ -78,7 +78,7 @@ export default function SettingsPage() {
                 {saving ? <Loader2 className="size-4 animate-spin" /> : "Update Password"}
               </Button>
               {saved && (
-                <span className="flex items-center gap-1.5 text-sm text-accent">
+                <span className="flex items-center gap-1.5 text-sm text-primary">
                   <CheckCircle2 className="size-4" /> Updated
                 </span>
               )}

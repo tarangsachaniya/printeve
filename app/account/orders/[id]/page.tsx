@@ -84,7 +84,7 @@ export default function OrderDetailPage() {
               return (
                 <li key={step.status} className="flex items-center gap-3">
                   {done ? (
-                    <CheckCircle2 className="size-5 text-accent" />
+                    <CheckCircle2 className="size-5 text-primary" />
                   ) : (
                     <Circle className="size-5 text-border" />
                   )}

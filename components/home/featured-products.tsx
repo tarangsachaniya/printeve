@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
-import type { Product, ProductListResponse } from "@/lib/types";
+import type { Product } from "@/lib/types";
 import { ProductCard } from "@/components/product-card";
 
 async function getFeaturedProducts(): Promise<Product[]> {
   try {
-    const res = await api.get<ProductListResponse>("/products?page=1&limit=8");
+    const res = await api.get<{ items: Product[] }>("/settings/homepage_featured_products");
     return res.items ?? [];
   } catch {
     return [];

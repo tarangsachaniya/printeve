@@ -46,10 +46,10 @@ export function ProductConfigurator({ product }: { product: Product }) {
     const initial: Record<string, string | string[]> = {};
     for (const field of product.custom_fields ?? []) {
       if (field.field_type === "multi_select") {
-        initial[field.category_field_id] = [];
-      } else if (field.field_type === "select" || field.field_type === "boolean") {
+        initial[field.product_field_id] = [];
+      } else if (field.field_type === "select" || field.field_type === "boolean" || field.field_type === "radio") {
         const def = field.options.find((o) => o.is_default) ?? field.options[0];
-        if (def) initial[field.category_field_id] = def.id;
+        if (def) initial[field.product_field_id] = def.id;
       }
     }
     return initial;
@@ -117,30 +117,30 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
     const customFields: Record<string, { value: string | string[]; label: string; modifier: number }> = {};
     for (const field of product.custom_fields ?? []) {
-      if (field.field_type === "select" || field.field_type === "boolean") {
-        const id = customFieldValues[field.category_field_id] as string | undefined;
+      if (field.field_type === "select" || field.field_type === "boolean" || field.field_type === "radio") {
+        const id = customFieldValues[field.product_field_id] as string | undefined;
         const opt = field.options.find((o) => o.id === id) ?? field.options.find((o) => o.is_default);
         if (opt) {
-          customFields[field.category_field_id] = {
+          customFields[field.product_field_id] = {
             value: opt.id,
             label: `${field.label}: ${opt.name}`,
             modifier: Number(opt.price_modifier),
           };
         }
       } else if (field.field_type === "multi_select") {
-        const ids = (customFieldValues[field.category_field_id] as string[]) ?? [];
+        const ids = (customFieldValues[field.product_field_id] as string[]) ?? [];
         const opts = field.options.filter((o) => ids.includes(o.id));
         if (opts.length > 0) {
-          customFields[field.category_field_id] = {
+          customFields[field.product_field_id] = {
             value: ids,
             label: `${field.label}: ${opts.map((o) => o.name).join(", ")}`,
             modifier: opts.reduce((sum, o) => sum + Number(o.price_modifier), 0),
           };
         }
       } else {
-        const text = customFieldText[field.category_field_id];
+        const text = customFieldText[field.product_field_id];
         if (text) {
-          customFields[field.category_field_id] = { value: text, label: `${field.label}: ${text}`, modifier: 0 };
+          customFields[field.product_field_id] = { value: text, label: `${field.label}: ${text}`, modifier: 0 };
         }
       }
     }
@@ -324,12 +324,12 @@ export function ProductConfigurator({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* Category-specific fields */}
+      {/* Product custom fields */}
       {(product.custom_fields ?? []).map((field) => {
         if (field.field_type === "select" || field.field_type === "boolean") {
-          const value = (customFieldValues[field.category_field_id] as string) ?? "";
+          const value = (customFieldValues[field.product_field_id] as string) ?? "";
           return (
-            <div key={field.category_field_id}>
+            <div key={field.product_field_id}>
               <Label className="mb-2 block">
                 {field.label}
                 {field.is_required ? " *" : ""}
@@ -337,7 +337,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
               <Select
                 value={value}
                 onValueChange={(v) =>
-                  setCustomFieldValues((prev) => ({ ...prev, [field.category_field_id]: v }))
+                  setCustomFieldValues((prev) => ({ ...prev, [field.product_field_id]: v }))
                 }
               >
                 <SelectTrigger>
@@ -357,10 +357,41 @@ export function ProductConfigurator({ product }: { product: Product }) {
           );
         }
 
-        if (field.field_type === "multi_select") {
-          const values = (customFieldValues[field.category_field_id] as string[]) ?? [];
+        if (field.field_type === "radio") {
+          const value = (customFieldValues[field.product_field_id] as string) ?? "";
           return (
-            <div key={field.category_field_id}>
+            <div key={field.product_field_id}>
+              <Label className="mb-2 block">
+                {field.label}
+                {field.is_required ? " *" : ""}
+              </Label>
+              <div className="flex flex-col gap-2">
+                {field.options.map((opt) => (
+                  <label key={opt.id} className="flex items-center gap-2 text-sm text-text cursor-pointer">
+                    <input
+                      type="radio"
+                      name={field.product_field_id}
+                      value={opt.id}
+                      checked={value === opt.id}
+                      onChange={() =>
+                        setCustomFieldValues((prev) => ({ ...prev, [field.product_field_id]: opt.id }))
+                      }
+                      className="size-4 accent-primary"
+                    />
+                    {opt.name}
+                    {opt.price_modifier !== 0 &&
+                      ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        if (field.field_type === "multi_select") {
+          const values = (customFieldValues[field.product_field_id] as string[]) ?? [];
+          return (
+            <div key={field.product_field_id}>
               <Label className="mb-2 block">
                 {field.label}
                 {field.is_required ? " *" : ""}
@@ -375,11 +406,11 @@ export function ProductConfigurator({ product }: { product: Product }) {
                         checked={checked}
                         onChange={(e) => {
                           setCustomFieldValues((prev) => {
-                            const current = (prev[field.category_field_id] as string[]) ?? [];
+                            const current = (prev[field.product_field_id] as string[]) ?? [];
                             const next = e.target.checked
                               ? [...current, opt.id]
                               : current.filter((id) => id !== opt.id);
-                            return { ...prev, [field.category_field_id]: next };
+                            return { ...prev, [field.product_field_id]: next };
                           });
                         }}
                         className="size-4 accent-primary"
@@ -395,17 +426,55 @@ export function ProductConfigurator({ product }: { product: Product }) {
           );
         }
 
+        if (field.field_type === "textarea") {
+          return (
+            <div key={field.product_field_id}>
+              <Label className="mb-2 block">
+                {field.label}
+                {field.is_required ? " *" : ""}
+              </Label>
+              <textarea
+                value={customFieldText[field.product_field_id] ?? ""}
+                onChange={(e) =>
+                  setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: e.target.value }))
+                }
+                rows={3}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text focus-ring resize-y"
+              />
+            </div>
+          );
+        }
+
+        if (field.field_type === "file_upload") {
+          return (
+            <div key={field.product_field_id}>
+              <Label className="mb-2 block">
+                {field.label}
+                {field.is_required ? " *" : ""}
+              </Label>
+              <input
+                type="file"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: f.name }));
+                }}
+                className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium"
+              />
+            </div>
+          );
+        }
+
         return (
-          <div key={field.category_field_id}>
+          <div key={field.product_field_id}>
             <Label className="mb-2 block">
               {field.label}
               {field.is_required ? " *" : ""}
             </Label>
             <input
               type={field.field_type === "number" ? "number" : "text"}
-              value={customFieldText[field.category_field_id] ?? ""}
+              value={customFieldText[field.product_field_id] ?? ""}
               onChange={(e) =>
-                setCustomFieldText((prev) => ({ ...prev, [field.category_field_id]: e.target.value }))
+                setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: e.target.value }))
               }
               className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring"
             />
@@ -524,7 +593,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
               </div>
             )}
             {breakdown.modifiers.custom_fields?.map((row) => (
-              <div key={row.category_field_id} className="flex justify-between">
+              <div key={row.product_field_id} className="flex justify-between">
                 <dt className="text-text-muted">{row.label}</dt>
                 <dd className="text-text">{formatPrice(row.amount)}</dd>
               </div>

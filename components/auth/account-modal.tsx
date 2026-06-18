@@ -164,7 +164,7 @@ function ProfileTab() {
           {saving ? <Loader2 className="size-4 animate-spin" /> : "Save Changes"}
         </Button>
         {saved && (
-          <span className="flex items-center gap-1.5 text-sm text-accent">
+          <span className="flex items-center gap-1.5 text-sm text-primary">
             <CheckCircle2 className="size-4" /> Saved
           </span>
         )}
@@ -487,7 +487,7 @@ function SettingsTab() {
               {saving ? <Loader2 className="size-4 animate-spin" /> : "Update Password"}
             </Button>
             {saved && (
-              <span className="flex items-center gap-1.5 text-sm text-accent">
+              <span className="flex items-center gap-1.5 text-sm text-primary">
                 <CheckCircle2 className="size-4" /> Updated
               </span>
             )}

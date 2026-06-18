@@ -21,12 +21,12 @@ export interface PriceSelection {
 function calculateCustomFieldModifiers(
   customFields: CustomField[],
   selection?: Record<string, string | string[]>,
-): { total: number; rows: { category_field_id: string; label: string; amount: number }[] } {
+): { total: number; rows: { product_field_id: string; label: string; amount: number }[] } {
   let total = 0;
-  const rows: { category_field_id: string; label: string; amount: number }[] = [];
+  const rows: { product_field_id: string; label: string; amount: number }[] = [];
 
   for (const field of customFields) {
-    const selected = selection?.[field.category_field_id];
+    const selected = selection?.[field.product_field_id];
 
     if (field.field_type === "multi_select") {
       const ids = Array.isArray(selected) ? selected : [];
@@ -35,19 +35,19 @@ function calculateCustomFieldModifiers(
         const option = field.options.find((o) => o.id === id);
         if (option) amount += Number(option.price_modifier);
       }
-      if (amount !== 0) rows.push({ category_field_id: field.category_field_id, label: field.label, amount });
+      if (amount !== 0) rows.push({ product_field_id: field.product_field_id, label: field.label, amount });
       total += amount;
       continue;
     }
 
-    if (field.field_type === "select" || field.field_type === "boolean") {
+    if (field.field_type === "select" || field.field_type === "boolean" || field.field_type === "radio") {
       const id = typeof selected === "string" ? selected : undefined;
       let option = id ? field.options.find((o) => o.id === id) ?? null : null;
       if (!option) {
         option = field.options.find((o) => o.is_default) ?? null;
       }
       const amount = option ? Number(option.price_modifier) : 0;
-      if (amount !== 0 && option) rows.push({ category_field_id: field.category_field_id, label: field.label, amount });
+      if (amount !== 0 && option) rows.push({ product_field_id: field.product_field_id, label: field.label, amount });
       total += amount;
       continue;
     }

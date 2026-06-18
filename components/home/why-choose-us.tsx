@@ -22,7 +22,7 @@ export function WhyChooseUs() {
           const Icon = icons[i];
           return (
             <div key={item.title} className="rounded-lg border border-border bg-background p-6">
-              <span className="flex size-11 items-center justify-center rounded-md bg-accent/10 text-accent">
+              <span className="flex size-11 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Icon className="size-5" />
               </span>
               <h3 className="mt-4 text-sm font-semibold text-text">{item.title}</h3>

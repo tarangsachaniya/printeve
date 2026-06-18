@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export function CtaSection() {
   return (
     <section className="mx-auto max-w-7xl container-px py-16 lg:py-20">
-      <div className="rounded-xl bg-primary px-8 py-12 text-center sm:px-16 sm:py-16">
+      <div className="rounded-2xl px-8 py-12 text-center sm:px-16 sm:py-16" style={{ background: 'var(--gradient-brand)' }}>
         <h2 className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl">
           Ready to bring your designs to print?
         </h2>

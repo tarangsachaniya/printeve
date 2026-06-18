@@ -131,7 +131,7 @@ export default function CartPage() {
                 <dd className="text-text">{deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}</dd>
               </div>
               {deliveryFee > 0 && (
-                <p className="text-xs text-accent">
+                <p className="text-xs text-primary">
                   Add {formatPrice(FREE_DELIVERY_THRESHOLD - subtotal)} more for free delivery
                 </p>
               )}
