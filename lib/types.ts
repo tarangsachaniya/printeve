@@ -48,6 +48,8 @@ export interface Product {
   custom_fields: CustomField[];
   city_id: string | null;
   city_pricing_applied: boolean;
+  category: { id: string; title: string; slug: string } | null;
+  related_products: { id: string; name: string; slug: string; base_price: number; images: string[] }[];
 }
 
 export interface ProductListResponse {

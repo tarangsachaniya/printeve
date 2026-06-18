@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductConfigurator } from "@/components/products/product-configurator";
+import { SimilarProductsCarousel } from "@/components/products/similar-products-carousel";
 
 async function getProduct(slug: string): Promise<Product | null> {
   try {
@@ -31,10 +32,24 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           Home
         </Link>
         <ChevronRight className="size-3.5" />
-        <Link href="/products" className="hover:text-primary transition-colors">
-          Products
-        </Link>
-        <ChevronRight className="size-3.5" />
+        {product.category ? (
+          <>
+            <Link
+              href={`/products?category=${product.category.slug}`}
+              className="hover:text-primary transition-colors"
+            >
+              {product.category.title}
+            </Link>
+            <ChevronRight className="size-3.5" />
+          </>
+        ) : (
+          <>
+            <Link href="/products" className="hover:text-primary transition-colors">
+              Products
+            </Link>
+            <ChevronRight className="size-3.5" />
+          </>
+        )}
         <span className="text-text">{product.name}</span>
       </nav>
 
@@ -49,6 +64,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <div className="prose-print" dangerouslySetInnerHTML={{ __html: product.description }} />
         </div>
       )}
+
+      <SimilarProductsCarousel
+        products={product.related_products ?? []}
+        categoryTitle={product.category?.title}
+        categorySlug={product.category?.slug}
+      />
     </div>
   );
 }
+
