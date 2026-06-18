@@ -36,7 +36,7 @@ function ResetPasswordForm() {
     try {
       await resetPassword(token, password);
       setDone(true);
-      setTimeout(() => router.push("/login"), 2000);
+      setTimeout(() => router.push("/"), 2000);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to reset password. The link may have expired.");
     } finally {
@@ -52,7 +52,7 @@ function ResetPasswordForm() {
             <CheckCircle2 className="size-6 text-primary" />
           </div>
           <h1 className="mt-4 text-lg font-semibold text-text">Password updated</h1>
-          <p className="mt-2 text-sm text-text-muted">Redirecting you to sign in...</p>
+          <p className="mt-2 text-sm text-text-muted">Redirecting you to the homepage...</p>
         </CardContent>
       </Card>
     );
@@ -83,8 +83,8 @@ function ResetPasswordForm() {
         </form>
 
         <p className="mt-6 text-center text-sm text-text-muted">
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Back to sign in
+          <Link href="/" className="font-medium text-primary hover:underline">
+            Back to homepage
           </Link>
         </p>
       </CardContent>

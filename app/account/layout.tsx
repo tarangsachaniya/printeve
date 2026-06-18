@@ -1,13 +1,16 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Loader2, Lock } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<"loading" | "authed" | "guest">("loading");
+  const [authOpen, setAuthOpen] = React.useState(false);
+  const { user } = useAuth();
 
   React.useEffect(() => {
     api
@@ -15,6 +18,10 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       .then(() => setStatus("authed"))
       .catch((err) => setStatus(err instanceof ApiError && err.status === 401 ? "guest" : "authed"));
   }, []);
+
+  React.useEffect(() => {
+    if (user && status === "guest") setStatus("authed");
+  }, [user, status]);
 
   if (status === "loading") {
     return (
@@ -34,9 +41,10 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         <p className="mt-2 text-sm text-text-muted">
           Access your orders, addresses and account settings.
         </p>
-        <Button asChild size="lg" className="mt-6">
-          <Link href="/login">Sign In</Link>
+        <Button size="lg" className="mt-6" onClick={() => setAuthOpen(true)}>
+          Sign In
         </Button>
+        <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
       </div>
     );
   }
