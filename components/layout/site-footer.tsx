@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { Printer, Mail, Phone, MapPin } from "lucide-react";
 import { SocialIcon, type SocialPlatform } from "@/components/ui/social-icon";
+import type { SiteConfig } from "@/lib/site-config";
+import type { Category } from "@/lib/types";
 
-const socialLinks: SocialPlatform[] = ["facebook", "instagram", "twitter", "linkedin"];
+const defaultSocialLinks: SocialPlatform[] = ["facebook", "instagram", "twitter", "linkedin"];
 
-const supportLinks = [
+const defaultSupportLinks = [
   { href: "/contact", label: "Contact Us" },
   { href: "/track-order", label: "Track Order" },
   { href: "/account/orders", label: "My Orders" },
@@ -14,18 +16,35 @@ const supportLinks = [
   { href: "/about", label: "About Us" },
 ];
 
-const companyLinks = [
+const defaultCompanyLinks = [
   { href: "/about", label: "Our Story" },
   { href: "/products", label: "All Products" },
   { href: "/account/addresses", label: "Bulk Orders" },
   { href: "/contact", label: "Become a Partner" },
 ];
 
-export function SiteFooter() {
+export function SiteFooter({ siteConfig, categories = [] }: { siteConfig?: SiteConfig; categories?: Category[] }) {
+  const settings = siteConfig?.settings ?? {};
+  const footerGroups = siteConfig?.footer;
+  const phone = settings.phone ?? "+91 12345 67890";
+  const email = settings.email ?? "support@printeve.com";
+  const address = settings.address ?? "4th Floor, Print House, MG Road, Bengaluru, Karnataka 560001";
+  const description = settings.footer_description ?? "Premium custom printing for businesses of every size — business cards, marketing materials, packaging and bulk print runs, produced with precision and delivered on time, every time.";
+  const socialLinks = defaultSocialLinks;
+  const policyLinks: { label: string; href: string }[] = (() => {
+    try { return settings.footer_policy_links ? JSON.parse(settings.footer_policy_links) : []; } catch { return []; }
+  })();
+
+  const linkGroups = footerGroups?.length
+    ? footerGroups
+    : [
+        { id: "support", title: "Support", sort_order: 0, links: defaultSupportLinks.map((l, i) => ({ id: String(i), ...l, sort_order: i })) },
+        { id: "company", title: "Company", sort_order: 1, links: defaultCompanyLinks.map((l, i) => ({ id: String(i), ...l, sort_order: i })) },
+      ];
   return (
     <footer className="border-t border-border bg-surface">
       <div className="mx-auto max-w-7xl container-px py-12">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
               <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -34,20 +53,17 @@ export function SiteFooter() {
               <span className="text-lg font-bold tracking-tight text-text">PrintEve</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-text-muted">
-              Premium custom printing for businesses of every size — business cards, marketing
-              materials, packaging and bulk print runs, produced with precision and delivered on
-              time, every time.
+              {description}
             </p>
             <div className="mt-5 flex flex-col gap-2 text-sm text-text-muted">
-              <a href="tel:+911234567890" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <Phone className="size-4" /> +91 12345 67890
+              <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Phone className="size-4" /> {phone}
               </a>
-              <a href="mailto:support@printeve.com" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <Mail className="size-4" /> support@printeve.com
+              <a href={`mailto:${email}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Mail className="size-4" /> {email}
               </a>
               <p className="flex items-start gap-2">
-                <MapPin className="size-4 mt-0.5 shrink-0" /> 4th Floor, Print House, MG Road,
-                Bengaluru, Karnataka 560001
+                <MapPin className="size-4 mt-0.5 shrink-0" /> {address}
               </p>
             </div>
             <div className="mt-5 flex items-center gap-2">
@@ -64,31 +80,35 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-text">Support</h3>
-            <ul className="mt-4 flex flex-col gap-2.5">
-              {supportLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-text-muted hover:text-primary transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {linkGroups.map((group) => (
+            <div key={group.id}>
+              <h3 className="text-sm font-semibold text-text">{group.title}</h3>
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {group.links.map((link) => (
+                  <li key={link.id}>
+                    <Link href={link.href} className="text-sm text-text-muted hover:text-primary transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
-          <div>
-            <h3 className="text-sm font-semibold text-text">Company</h3>
-            <ul className="mt-4 flex flex-col gap-2.5">
-              {companyLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-text-muted hover:text-primary transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {categories.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-text">Categories</h3>
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {categories.map((cat) => (
+                  <li key={cat.id}>
+                    <Link href={`/products?category=${cat.slug}`} className="text-sm text-text-muted hover:text-primary transition-colors">
+                      {cat.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
         </div>
 
@@ -97,15 +117,15 @@ export function SiteFooter() {
             &copy; {new Date().getFullYear()} PrintEve. All rights reserved.
           </p>
           <div className="flex gap-5 text-xs text-text-muted">
-            <Link href="/privacy" className="hover:text-primary transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="hover:text-primary transition-colors">
-              Terms of Service
-            </Link>
-            <Link href="/contact" className="hover:text-primary transition-colors">
-              Contact
-            </Link>
+            {(policyLinks.length > 0 ? policyLinks : [
+              { label: "Privacy Policy", href: "/privacy-policy" },
+              { label: "Terms of Service", href: "/terms-and-conditions" },
+              { label: "Contact", href: "/contact" },
+            ]).map((link) => (
+              <Link key={link.href} href={link.href} className="hover:text-primary transition-colors">
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

@@ -55,6 +55,15 @@ export interface ProductListResponse {
   total: number;
 }
 
+export interface Category {
+  id: string;
+  title: string;
+  slug: string;
+  icon_url: string | null;
+  short_description: string | null;
+  products: { id: string; name: string; slug: string }[];
+}
+
 export interface City {
   id: string;
   name: string;

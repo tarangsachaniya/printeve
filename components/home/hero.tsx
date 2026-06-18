@@ -1,67 +1,86 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Truck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { trustBadges } from "@/data/content";
 import {
   BusinessCardSVG,
   MarketingKitSVG,
   PackagingSVG,
   BannerSVG,
 } from "@/components/ui/custom-svgs";
+import type { CmsSection } from "@/lib/site-config";
 
-export function Hero() {
+const trustIconMap: Record<string, typeof ShieldCheck> = { ShieldCheck, Clock, Truck };
+
+export function Hero({ section }: { section: CmsSection }) {
+  const content = section.content as Record<string, unknown> | null;
+  const settings = section.settings as Record<string, unknown> | null;
+
+  const eyebrow = (content?.eyebrow as string) ?? "";
+  const headline = section.title ?? "";
+  const subtitle = section.subtitle ?? "";
+  const ctaPrimary = (content?.cta_primary as string) ?? "";
+  const ctaPrimaryHref = (content?.cta_primary_href as string) ?? "/products";
+  const ctaSecondary = (content?.cta_secondary as string) ?? "";
+  const ctaSecondaryHref = (content?.cta_secondary_href as string) ?? "/about";
+
+  const trustMetrics = (settings?.trust_metrics as { icon: string; label: string; value: string }[]) ?? [];
+  const trustBadges = section.items?.filter(i => !i.icon || ['business-cards', 'marketing-kits', 'packaging', 'banners'].includes(i.icon)) ?? [];
+
   return (
     <section className="relative overflow-hidden border-b border-border" style={{ background: 'var(--gradient-hero)' }}>
       <div className="mx-auto max-w-7xl container-px py-16 lg:py-24">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium text-text-muted">
-              <span className="size-1.5 rounded-full bg-primary" />
-              Trusted by 10,000+ businesses across India
-            </span>
+            {eyebrow && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium text-text-muted">
+                <span className="size-1.5 rounded-full bg-primary" />
+                {eyebrow}
+              </span>
+            )}
 
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-text sm:text-5xl lg:text-6xl">
-              Premium prints, made for{" "}
-              <span className="text-primary">your brand</span>
-            </h1>
+            {headline && (
+              <h1
+                className="mt-5 text-4xl font-bold tracking-tight text-text sm:text-5xl lg:text-6xl"
+                dangerouslySetInnerHTML={{ __html: headline }}
+              />
+            )}
 
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-text-muted sm:text-lg">
-              From business cards to bulk packaging — order professional print
-              jobs online with transparent pricing, fast turnarounds, and
-              quality you can trust on every run.
-            </p>
+            {subtitle && (
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-text-muted sm:text-lg">
+                {subtitle}
+              </p>
+            )}
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" asChild>
-                <Link href="/products">
-                  Start an Order <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/about">How It Works</Link>
-              </Button>
+              {ctaPrimary && (
+                <Button size="lg" asChild>
+                  <Link href={ctaPrimaryHref}>
+                    {ctaPrimary} <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              )}
+              {ctaSecondary && (
+                <Button size="lg" variant="outline" asChild>
+                  <Link href={ctaSecondaryHref}>{ctaSecondary}</Link>
+                </Button>
+              )}
             </div>
 
-            <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-border pt-6 max-w-md">
-              <div>
-                <dt className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
-                  <ShieldCheck className="size-4 text-primary" /> Quality
-                </dt>
-                <dd className="mt-1 text-sm font-semibold text-text">Guaranteed</dd>
-              </div>
-              <div>
-                <dt className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
-                  <Clock className="size-4 text-primary" /> Turnaround
-                </dt>
-                <dd className="mt-1 text-sm font-semibold text-text">From 24 hrs</dd>
-              </div>
-              <div>
-                <dt className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
-                  <Truck className="size-4 text-primary" /> Delivery
-                </dt>
-                <dd className="mt-1 text-sm font-semibold text-text">Pan-India</dd>
-              </div>
-            </dl>
+            {trustMetrics.length > 0 && (
+              <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-border pt-6 max-w-md">
+                {trustMetrics.map((metric) => {
+                  const Icon = trustIconMap[metric.icon] ?? ShieldCheck;
+                  return (
+                    <div key={metric.label}>
+                      <dt className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
+                        <Icon className="size-4 text-primary" /> {metric.label}
+                      </dt>
+                      <dd className="mt-1 text-sm font-semibold text-text">{metric.value}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            )}
           </div>
 
           <div className="relative">
@@ -103,17 +122,6 @@ export function Hero() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Trust strip */}
-        <div className="mt-16 border-t border-border pt-6">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            {trustBadges.map((badge) => (
-              <span key={badge} className="text-xs font-medium uppercase tracking-wide text-text-muted">
-                {badge}
-              </span>
-            ))}
           </div>
         </div>
       </div>

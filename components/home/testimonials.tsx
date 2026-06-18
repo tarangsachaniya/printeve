@@ -1,20 +1,29 @@
 import { Star } from "lucide-react";
-import { testimonials } from "@/data/content";
+import type { CmsSection } from "@/lib/site-config";
 
-export function Testimonials() {
-  const doubled = [...testimonials, ...testimonials];
+export function Testimonials({ section }: { section: CmsSection }) {
+  const items = (section.items ?? []).map((item) => ({
+    name: item.title ?? "",
+    role: item.subtitle ?? "",
+    quote: item.content ?? "",
+  }));
+
+  const doubled = [...items, ...items];
 
   return (
     <section className="py-16 lg:py-20">
       <div className="mx-auto max-w-7xl container-px">
         <div className="max-w-2xl">
-          <h2 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">
-            What Our Customers Say
-          </h2>
-          <p className="mt-2 text-sm text-text-muted sm:text-base">
-            Trusted by marketing teams, founders and operations leads across
-            industries.
-          </p>
+          {section.title && (
+            <h2 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">
+              {section.title}
+            </h2>
+          )}
+          {section.subtitle && (
+            <p className="mt-2 text-sm text-text-muted sm:text-base">
+              {section.subtitle}
+            </p>
+          )}
         </div>
       </div>
 

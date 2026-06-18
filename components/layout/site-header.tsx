@@ -3,23 +3,31 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, User, Menu, X, ChevronDown, Printer, MapPin, Settings, LogOut, UserCircle, Package } from "lucide-react";
-import { useNavbarProducts } from "@/lib/settings";
+import { Search, User, Menu, X, ChevronDown, Printer, MapPin, Settings, LogOut, UserCircle, Package, Layers } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { AccountModal } from "@/components/auth/account-modal";
 import { CartSheet } from "./cart-sheet";
 import { cn } from "@/lib/utils";
+import type { SiteConfig } from "@/lib/site-config";
+import type { Category } from "@/lib/types";
 
-const navLinks = [
+const defaultNavLinks = [
   { href: "/products", label: "Shop" },
   { href: "/track-order", label: "Track Order" },
-  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  siteConfig?: SiteConfig;
+  categories?: Category[];
+}
+
+export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
+  const navLinks = siteConfig?.navbar?.main?.map(n => ({ href: n.href, label: n.label })) ?? defaultNavLinks;
+  const topbarMessage = siteConfig?.settings?.topbar_message ?? "Free design proofing on every order · Pan-India delivery";
+  const phone = siteConfig?.settings?.phone ?? "+91 12345 67890";
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [megaOpen, setMegaOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
@@ -29,7 +37,6 @@ export function SiteHeader() {
   const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
   const { user, logout } = useAuth();
   const { cityName, openPicker } = useCity();
-  const { products: navbarProducts } = useNavbarProducts();
   const router = useRouter();
 
   function openAccountModal(tab: "profile" | "addresses" | "settings") {
@@ -67,7 +74,7 @@ export function SiteHeader() {
       {/* Top bar */}
       <div className="hidden border-b border-border bg-surface md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between container-px py-2 text-xs text-text-muted">
-          <p>Free design proofing on every order &middot; Pan-India delivery</p>
+          <p>{topbarMessage}</p>
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -77,8 +84,8 @@ export function SiteHeader() {
               <MapPin className="size-3.5" />
               {cityName ?? "Select city"}
             </button>
-            <a href="tel:+911234567890" className="hover:text-primary transition-colors">
-              +91 12345 67890
+            <a href={`tel:${phone.replace(/\s/g, '')}`} className="hover:text-primary transition-colors">
+              {phone}
             </a>
             <Link href="/track-order" className="hover:text-primary transition-colors">
               Track Order
@@ -98,7 +105,8 @@ export function SiteHeader() {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-1 ml-4">
-          {navbarProducts.length > 0 && (
+          {/* Categories mega-menu */}
+          {categories.length > 0 && (
             <div
               className="relative"
               onPointerEnter={(e) => {
@@ -117,34 +125,39 @@ export function SiteHeader() {
                 <ChevronDown className="size-4" />
               </button>
               {megaOpen && (
-                <div className="absolute left-0 top-full w-[560px] rounded-lg border border-border bg-background p-5 shadow-[var(--shadow-card-hover)]">
-                  <div className="grid grid-cols-2 gap-2">
-                    {navbarProducts.map((product) => (
-                      <Link
-                        key={product.slug}
-                        href={`/products/${product.slug}`}
-                        className="group flex items-center gap-3 rounded-md p-2.5 transition-colors hover:bg-surface"
-                        onClick={() => setMegaOpen(false)}
-                      >
-                        {product.images?.[0] ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={product.images[0]}
-                            alt=""
-                            className="size-10 shrink-0 rounded-md object-cover bg-muted"
-                          />
-                        ) : (
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                            <Package className="size-5" />
-                          </span>
-                        )}
-                        <span className="text-sm font-medium text-text group-hover:text-primary line-clamp-2">
-                          {product.name}
-                        </span>
-                      </Link>
+                <div className="absolute left-0 top-full w-[640px] rounded-lg border border-border bg-background p-5 shadow-[var(--shadow-card-hover)]">
+                  <div className="grid grid-cols-2 gap-4">
+                    {categories.map((category) => (
+                      <div key={category.id}>
+                        <Link
+                          href={`/products?category=${category.slug}`}
+                          className="flex items-center gap-2 text-sm font-semibold text-text hover:text-primary transition-colors"
+                          onClick={() => setMegaOpen(false)}
+                        >
+                          {category.icon_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={category.icon_url} alt="" className="size-5 object-contain" />
+                          ) : (
+                            <Layers className="size-4 text-primary" />
+                          )}
+                          {category.title}
+                        </Link>
+                        <div className="mt-1.5 ml-7 flex flex-col gap-0.5">
+                          {category.products.slice(0, 4).map((product) => (
+                            <Link
+                              key={product.slug}
+                              href={`/products/${product.slug}`}
+                              className="text-xs text-text-muted hover:text-primary transition-colors"
+                              onClick={() => setMegaOpen(false)}
+                            >
+                              {product.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  <div className="mt-3 border-t border-border pt-3">
+                  <div className="mt-4 border-t border-border pt-3">
                     <Link
                       href="/products"
                       className="text-sm font-medium text-primary hover:underline"
@@ -158,7 +171,7 @@ export function SiteHeader() {
             </div>
           )}
 
-          {navLinks.slice(1).map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -282,21 +295,23 @@ export function SiteHeader() {
                 />
               </div>
             </form>
-            {navbarProducts.length > 0 && (
-              <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                Products
-              </p>
+            {categories.length > 0 && (
+              <>
+                <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Categories
+                </p>
+                {categories.map((category) => (
+                  <Link
+                    key={category.slug}
+                    href={`/products?category=${category.slug}`}
+                    className="rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {category.title}
+                  </Link>
+                ))}
+              </>
             )}
-            {navbarProducts.map((product) => (
-              <Link
-                key={product.slug}
-                href={`/products/${product.slug}`}
-                className="rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface"
-                onClick={() => setMobileOpen(false)}
-              >
-                {product.name}
-              </Link>
-            ))}
             <div className="mt-2 border-t border-border pt-2 flex flex-col gap-1">
               {navLinks.map((link) => (
                 <Link
