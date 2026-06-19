@@ -32,6 +32,22 @@ export interface CustomField {
   options: CustomFieldOption[];
 }
 
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
+export interface Guideline {
+  icon_url: string;
+  title: string;
+  description: string;
+}
+
+export interface Specification {
+  key: string;
+  value: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -46,6 +62,10 @@ export interface Product {
   paper_types: VariantOption[];
   quantity_slabs: QuantitySlab[];
   custom_fields: CustomField[];
+  faqs: FAQ[];
+  finish_and_care: string[];
+  guidelines: Guideline[];
+  specifications: Specification[];
   city_id: string | null;
   city_pricing_applied: boolean;
   category: { id: string; title: string; slug: string } | null;

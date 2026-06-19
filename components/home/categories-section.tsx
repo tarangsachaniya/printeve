@@ -1,7 +1,23 @@
 import Link from "next/link";
-import { ArrowRight, Layers } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowRight, Layers, CreditCard, FileText, BookOpen,
+  ImageIcon, Flag, Sticker, Package, Megaphone, Printer,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import type { Category } from "@/lib/types";
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "business-cards": CreditCard,
+  "flyers": FileText,
+  "brochures": BookOpen,
+  "posters": ImageIcon,
+  "banners": Flag,
+  "stickers": Sticker,
+  "packaging-prints": Package,
+  "marketing-materials": Megaphone,
+  "bulk-printing": Printer,
+};
 
 async function getCategories(): Promise<Category[]> {
   try {
@@ -44,9 +60,10 @@ export async function CategoriesSection() {
                     alt=""
                     className="size-7 object-contain"
                   />
-                ) : (
-                  <Layers className="size-6 text-primary" />
-                )}
+                ) : (() => {
+                  const Icon = CATEGORY_ICONS[category.slug] ?? Layers;
+                  return <Icon className="size-6 text-primary" />;
+                })()}
               </div>
               <ArrowRight className="size-4 text-text-muted opacity-0 transition-opacity group-hover:opacity-100" />
             </div>

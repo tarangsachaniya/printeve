@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductConfigurator } from "@/components/products/product-configurator";
+import { ProductTabs } from "@/components/products/product-tabs";
 import { SimilarProductsCarousel } from "@/components/products/similar-products-carousel";
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -54,16 +55,27 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </nav>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <ProductGallery images={product.images ?? []} videoUrl={product.video_url} name={product.name} />
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <ProductGallery images={product.images ?? []} videoUrl={product.video_url} name={product.name} />
+        </div>
         <ProductConfigurator product={product} />
       </div>
 
       {product.description && (
-        <div className="mt-12 max-w-3xl border-t border-border pt-8">
-          <h2 className="text-lg font-semibold text-text mb-4">Product Details</h2>
-          <div className="prose-print" dangerouslySetInnerHTML={{ __html: product.description }} />
+        <div className="mt-10 border-t border-border pt-8">
+          <h2 className="text-lg font-semibold text-text mb-4">About this product</h2>
+          <div className="prose-print max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
         </div>
       )}
+
+      <div className="mt-8 border-t border-border pt-8">
+        <ProductTabs
+          description={product.description}
+          faqs={product.faqs ?? []}
+          finishAndCare={product.finish_and_care ?? []}
+          specifications={product.specifications ?? []}
+        />
+      </div>
 
       <SimilarProductsCarousel
         products={product.related_products ?? []}
@@ -73,4 +85,3 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     </div>
   );
 }
-

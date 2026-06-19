@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Clock, CheckCircle2, FileText, Minus, Plus, ShoppingCart, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { Upload, Clock, CheckCircle2, FileText, Minus, Plus, ShoppingCart, Loader2, Star, Info } from "lucide-react";
 import type { Product, PriceBreakdown, DimensionUnit } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { estimatePrice, defaultOption } from "@/lib/pricing";
@@ -14,6 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PricingTierCards } from "@/components/products/pricing-tier-cards";
+import { TrustBadges } from "@/components/products/trust-badges";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 function formatCompletion(minutes: number | null): string | null {
   if (!minutes) return null;
@@ -41,6 +45,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const [loadingPrice, setLoadingPrice] = React.useState(false);
   const [file, setFile] = React.useState<File | null>(null);
   const [added, setAdded] = React.useState(false);
+  const [dragOver, setDragOver] = React.useState(false);
+  const [guidelinesOpen, setGuidelinesOpen] = React.useState(false);
+  const guidelines = product.guidelines ?? [];
 
   const [customFieldValues, setCustomFieldValues] = React.useState<Record<string, string | string[]>>(() => {
     const initial: Record<string, string | string[]> = {};
@@ -69,8 +76,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
   );
 
   React.useEffect(() => {
-    // Instant client-side estimate
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- recompute estimate immediately when selection changes, ahead of the debounced server price
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- recompute estimate immediately when selection changes
     setBreakdown(estimatePrice(product, selection));
     setPriceError(null);
 
@@ -99,6 +105,13 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
+    if (f) setFile(f);
+  }
+
+  function handleFileDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
     if (f) setFile(f);
   }
 
@@ -170,282 +183,307 @@ export function ProductConfigurator({ product }: { product: Product }) {
   }
 
   const completion = formatCompletion(breakdown?.max_completion_minutes ?? null);
-  const matchedSlab = breakdown?.matched_slab;
   const canAddToCart = !!breakdown && !priceError && customDimensionsValid;
+  const minSlab = product.quantity_slabs[0];
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Product header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">{product.name}</h1>
-      </div>
-
-      {/* Price */}
-      <div className="rounded-lg border border-border bg-surface p-5">
-        <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-text">
-            {breakdown ? formatPrice(breakdown.unit_price) : formatPrice(product.base_price)}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+            Bestseller
           </span>
-          <span className="text-sm text-text-muted">/ unit</span>
-          {loadingPrice && <Loader2 className="size-4 animate-spin text-text-muted" />}
+          <div className="flex items-center gap-1 text-xs text-text-muted">
+            <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+            <span className="font-medium text-text">4.9</span>
+          </div>
         </div>
-        <p className="mt-1 text-sm text-text-muted">
-          Total for {quantity.toLocaleString()} units:{" "}
-          <span className="font-semibold text-text">
-            {breakdown ? formatPrice(breakdown.total_price) : "—"}
-          </span>
-        </p>
-        {priceError && <p className="mt-2 text-sm text-danger">{priceError}</p>}
-        {completion && !priceError && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
-            <Clock className="size-3.5" /> Estimated production time: {completion}
+        <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">{product.name}</h1>
+        {minSlab && (
+          <p className="mt-2 text-sm text-text-muted">
+            Starting at{" "}
+            <span className="font-semibold text-text">
+              {formatPrice(product.base_price + Number(minSlab.price_modifier ?? 0))}
+            </span>
+            {" / "}
+            {minSlab.min_qty.toLocaleString("en-IN")} pcs
           </p>
         )}
       </div>
 
-      {/* Paper size */}
-      {product.paper_sizes.length > 0 && (
-        <div>
-          <Label className="mb-2 block">Paper Size</Label>
-          <Select value={sizeId} onValueChange={setSizeId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select size" />
-            </SelectTrigger>
-            <SelectContent>
-              {product.paper_sizes.map((opt) => (
-                <SelectItem key={opt.id} value={opt.id}>
-                  {opt.name}
-                  {opt.price_modifier !== 0 &&
-                    ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* Pricing tier cards */}
+      <PricingTierCards
+        slabs={product.quantity_slabs}
+        basePrice={product.base_price}
+        activeQuantity={quantity}
+        onSelect={setQuantity}
+      />
 
-      {/* Custom dimensions */}
-      {showCustomDimensions && (
-        <div>
-          <Label className="mb-2 block">Custom Size</Label>
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Width"
-                value={customWidth}
-                onChange={(e) => setCustomWidth(e.target.value)}
-                aria-label="Custom width"
-              />
-            </div>
-            <span className="text-sm text-text-muted">×</span>
-            <div className="flex-1">
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Height"
-                value={customHeight}
-                onChange={(e) => setCustomHeight(e.target.value)}
-                aria-label="Custom height"
-              />
-            </div>
-            <Select value={customUnit} onValueChange={(v) => handleCustomUnitChange(v as DimensionUnit)}>
-              <SelectTrigger className="w-20 shrink-0">
-                <SelectValue />
+      {/* Configurator options */}
+      <div className="space-y-4">
+        {/* Paper size */}
+        {product.paper_sizes.length > 0 && (
+          <div>
+            <Label className="mb-2 block">Paper Size</Label>
+            <Select value={sizeId} onValueChange={setSizeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select size" />
               </SelectTrigger>
               <SelectContent>
-                {DIMENSION_UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>
-                    {u}
+                {product.paper_sizes.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {opt.name}
+                    {opt.price_modifier !== 0 &&
+                      ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          {!customDimensionsValid && (
-            <p className="mt-1.5 text-xs text-danger">Enter the width and height for your custom size.</p>
-          )}
-          {customDimensionsValid && customUnit !== "in" && (
-            <p className="mt-1.5 text-xs text-text-muted">
-              ≈ {convertDimension(Number(customWidth), customUnit, "in")} ×{" "}
-              {convertDimension(Number(customHeight), customUnit, "in")} in
-            </p>
-          )}
-          {customDimensionsValid && customUnit === "in" && (
-            <p className="mt-1.5 text-xs text-text-muted">
-              ≈ {convertDimension(Number(customWidth), customUnit, "cm")} ×{" "}
-              {convertDimension(Number(customHeight), customUnit, "cm")} cm
-            </p>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* Paper type */}
-      {product.paper_types.length > 0 && (
-        <div>
-          <Label className="mb-2 block">Paper Type</Label>
-          <Select value={typeId} onValueChange={setTypeId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {product.paper_types.map((opt) => (
-                <SelectItem key={opt.id} value={opt.id}>
-                  {opt.name}
-                  {opt.price_modifier !== 0 &&
-                    ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Paper quality */}
-      {product.paper_qualities.length > 0 && (
-        <div>
-          <Label className="mb-2 block">Paper Quality</Label>
-          <Select value={qualityId} onValueChange={setQualityId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select quality" />
-            </SelectTrigger>
-            <SelectContent>
-              {product.paper_qualities.map((opt) => (
-                <SelectItem key={opt.id} value={opt.id}>
-                  {opt.name}
-                  {opt.price_modifier !== 0 &&
-                    ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Product custom fields */}
-      {(product.custom_fields ?? []).map((field) => {
-        if (field.field_type === "select" || field.field_type === "boolean") {
-          const value = (customFieldValues[field.product_field_id] as string) ?? "";
-          return (
-            <div key={field.product_field_id}>
-              <Label className="mb-2 block">
-                {field.label}
-                {field.is_required ? " *" : ""}
-              </Label>
-              <Select
-                value={value}
-                onValueChange={(v) =>
-                  setCustomFieldValues((prev) => ({ ...prev, [field.product_field_id]: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+        {/* Custom dimensions */}
+        {showCustomDimensions && (
+          <div>
+            <Label className="mb-2 block">Custom Size</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Width"
+                  value={customWidth}
+                  onChange={(e) => setCustomWidth(e.target.value)}
+                  aria-label="Custom width"
+                />
+              </div>
+              <span className="text-sm text-text-muted">×</span>
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Height"
+                  value={customHeight}
+                  onChange={(e) => setCustomHeight(e.target.value)}
+                  aria-label="Custom height"
+                />
+              </div>
+              <Select value={customUnit} onValueChange={(v) => handleCustomUnitChange(v as DimensionUnit)}>
+                <SelectTrigger className="w-20 shrink-0">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {field.options.map((opt) => (
-                    <SelectItem key={opt.id} value={opt.id}>
-                      {opt.name}
-                      {opt.price_modifier !== 0 &&
-                        ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                  {DIMENSION_UNITS.map((u) => (
+                    <SelectItem key={u} value={u}>
+                      {u}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          );
-        }
+            {!customDimensionsValid && (
+              <p className="mt-1.5 text-xs text-danger">Enter the width and height for your custom size.</p>
+            )}
+            {customDimensionsValid && customUnit !== "in" && (
+              <p className="mt-1.5 text-xs text-text-muted">
+                ≈ {convertDimension(Number(customWidth), customUnit, "in")} ×{" "}
+                {convertDimension(Number(customHeight), customUnit, "in")} in
+              </p>
+            )}
+            {customDimensionsValid && customUnit === "in" && (
+              <p className="mt-1.5 text-xs text-text-muted">
+                ≈ {convertDimension(Number(customWidth), customUnit, "cm")} ×{" "}
+                {convertDimension(Number(customHeight), customUnit, "cm")} cm
+              </p>
+            )}
+          </div>
+        )}
 
-        if (field.field_type === "radio") {
-          const value = (customFieldValues[field.product_field_id] as string) ?? "";
-          return (
-            <div key={field.product_field_id}>
-              <Label className="mb-2 block">
-                {field.label}
-                {field.is_required ? " *" : ""}
-              </Label>
-              <div className="flex flex-col gap-2">
-                {field.options.map((opt) => (
-                  <label key={opt.id} className="flex items-center gap-2 text-sm text-text cursor-pointer">
-                    <input
-                      type="radio"
-                      name={field.product_field_id}
-                      value={opt.id}
-                      checked={value === opt.id}
-                      onChange={() =>
-                        setCustomFieldValues((prev) => ({ ...prev, [field.product_field_id]: opt.id }))
-                      }
-                      className="size-4 accent-primary"
-                    />
+        {/* Paper type */}
+        {product.paper_types.length > 0 && (
+          <div>
+            <Label className="mb-2 block">Paper Type</Label>
+            <Select value={typeId} onValueChange={setTypeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {product.paper_types.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
                     {opt.name}
                     {opt.price_modifier !== 0 &&
                       ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
-                  </label>
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
-          );
-        }
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        if (field.field_type === "multi_select") {
-          const values = (customFieldValues[field.product_field_id] as string[]) ?? [];
-          return (
-            <div key={field.product_field_id}>
-              <Label className="mb-2 block">
-                {field.label}
-                {field.is_required ? " *" : ""}
-              </Label>
-              <div className="flex flex-col gap-2">
-                {field.options.map((opt) => {
-                  const checked = values.includes(opt.id);
-                  return (
-                    <label key={opt.id} className="flex items-center gap-2 text-sm text-text">
+        {/* Paper quality */}
+        {product.paper_qualities.length > 0 && (
+          <div>
+            <Label className="mb-2 block">Paper Quality</Label>
+            <Select value={qualityId} onValueChange={setQualityId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select quality" />
+              </SelectTrigger>
+              <SelectContent>
+                {product.paper_qualities.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {opt.name}
+                    {opt.price_modifier !== 0 &&
+                      ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Product custom fields */}
+        {(product.custom_fields ?? []).map((field) => {
+          if (field.field_type === "select" || field.field_type === "boolean") {
+            const value = (customFieldValues[field.product_field_id] as string) ?? "";
+            return (
+              <div key={field.product_field_id}>
+                <Label className="mb-2 block">
+                  {field.label}
+                  {field.is_required ? " *" : ""}
+                </Label>
+                <Select
+                  value={value}
+                  onValueChange={(v) =>
+                    setCustomFieldValues((prev) => ({ ...prev, [field.product_field_id]: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.options.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.name}
+                        {opt.price_modifier !== 0 &&
+                          ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            );
+          }
+
+          if (field.field_type === "radio") {
+            const value = (customFieldValues[field.product_field_id] as string) ?? "";
+            return (
+              <div key={field.product_field_id}>
+                <Label className="mb-2 block">
+                  {field.label}
+                  {field.is_required ? " *" : ""}
+                </Label>
+                <div className="flex flex-col gap-2">
+                  {field.options.map((opt) => (
+                    <label key={opt.id} className="flex items-center gap-2 text-sm text-text cursor-pointer">
                       <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          setCustomFieldValues((prev) => {
-                            const current = (prev[field.product_field_id] as string[]) ?? [];
-                            const next = e.target.checked
-                              ? [...current, opt.id]
-                              : current.filter((id) => id !== opt.id);
-                            return { ...prev, [field.product_field_id]: next };
-                          });
-                        }}
+                        type="radio"
+                        name={field.product_field_id}
+                        value={opt.id}
+                        checked={value === opt.id}
+                        onChange={() =>
+                          setCustomFieldValues((prev) => ({ ...prev, [field.product_field_id]: opt.id }))
+                        }
                         className="size-4 accent-primary"
                       />
                       {opt.name}
                       {opt.price_modifier !== 0 &&
                         ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
                     </label>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        }
+            );
+          }
 
-        if (field.field_type === "textarea") {
-          return (
-            <div key={field.product_field_id}>
-              <Label className="mb-2 block">
-                {field.label}
-                {field.is_required ? " *" : ""}
-              </Label>
-              <textarea
-                value={customFieldText[field.product_field_id] ?? ""}
-                onChange={(e) =>
-                  setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: e.target.value }))
-                }
-                rows={3}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text focus-ring resize-y"
-              />
-            </div>
-          );
-        }
+          if (field.field_type === "multi_select") {
+            const values = (customFieldValues[field.product_field_id] as string[]) ?? [];
+            return (
+              <div key={field.product_field_id}>
+                <Label className="mb-2 block">
+                  {field.label}
+                  {field.is_required ? " *" : ""}
+                </Label>
+                <div className="flex flex-col gap-2">
+                  {field.options.map((opt) => {
+                    const checked = values.includes(opt.id);
+                    return (
+                      <label key={opt.id} className="flex items-center gap-2 text-sm text-text">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setCustomFieldValues((prev) => {
+                              const current = (prev[field.product_field_id] as string[]) ?? [];
+                              const next = e.target.checked
+                                ? [...current, opt.id]
+                                : current.filter((id) => id !== opt.id);
+                              return { ...prev, [field.product_field_id]: next };
+                            });
+                          }}
+                          className="size-4 accent-primary"
+                        />
+                        {opt.name}
+                        {opt.price_modifier !== 0 &&
+                          ` (${opt.price_modifier > 0 ? "+" : ""}${formatPrice(opt.price_modifier)})`}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
 
-        if (field.field_type === "file_upload") {
+          if (field.field_type === "textarea") {
+            return (
+              <div key={field.product_field_id}>
+                <Label className="mb-2 block">
+                  {field.label}
+                  {field.is_required ? " *" : ""}
+                </Label>
+                <textarea
+                  value={customFieldText[field.product_field_id] ?? ""}
+                  onChange={(e) =>
+                    setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: e.target.value }))
+                  }
+                  rows={3}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text focus-ring resize-y"
+                />
+              </div>
+            );
+          }
+
+          if (field.field_type === "file_upload") {
+            return (
+              <div key={field.product_field_id}>
+                <Label className="mb-2 block">
+                  {field.label}
+                  {field.is_required ? " *" : ""}
+                </Label>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: f.name }));
+                  }}
+                  className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium"
+                />
+              </div>
+            );
+          }
+
           return (
             <div key={field.product_field_id}>
               <Label className="mb-2 block">
@@ -453,64 +491,25 @@ export function ProductConfigurator({ product }: { product: Product }) {
                 {field.is_required ? " *" : ""}
               </Label>
               <input
-                type="file"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: f.name }));
-                }}
-                className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium"
+                type={field.field_type === "number" ? "number" : "text"}
+                value={customFieldText[field.product_field_id] ?? ""}
+                onChange={(e) =>
+                  setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: e.target.value }))
+                }
+                className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring"
               />
             </div>
           );
-        }
-
-        return (
-          <div key={field.product_field_id}>
-            <Label className="mb-2 block">
-              {field.label}
-              {field.is_required ? " *" : ""}
-            </Label>
-            <input
-              type={field.field_type === "number" ? "number" : "text"}
-              value={customFieldText[field.product_field_id] ?? ""}
-              onChange={(e) =>
-                setCustomFieldText((prev) => ({ ...prev, [field.product_field_id]: e.target.value }))
-              }
-              className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-text focus-ring"
-            />
-          </div>
-        );
-      })}
+        })}
+      </div>
 
       {/* Quantity */}
       <div>
         <Label className="mb-2 block">Quantity</Label>
-        {product.quantity_slabs.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
-            {product.quantity_slabs.map((slab) => {
-              const isActive = matchedSlab && matchedSlab.min_qty === slab.min_qty && matchedSlab.max_qty === slab.max_qty;
-              return (
-                <button
-                  key={slab.id}
-                  onClick={() => setQuantity(slab.min_qty)}
-                  className={cn(
-                    "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
-                    isActive
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-text-muted hover:border-primary/40"
-                  )}
-                >
-                  {slab.min_qty.toLocaleString()}
-                  {slab.max_qty ? `–${slab.max_qty.toLocaleString()}` : "+"}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="flex h-11 w-40 items-center rounded-md border border-border">
+        <div className="flex h-11 w-48 items-center rounded-md border border-border">
           <button
             className="flex h-full w-11 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            onClick={() => setQuantity((q) => Math.max(1, q - (minSlab ? 100 : 1)))}
             disabled={quantity <= 1}
             aria-label="Decrease quantity"
           >
@@ -526,87 +525,134 @@ export function ProductConfigurator({ product }: { product: Product }) {
           />
           <button
             className="flex h-full w-11 items-center justify-center text-text-muted transition-colors hover:text-primary"
-            onClick={() => setQuantity((q) => q + 1)}
+            onClick={() => setQuantity((q) => q + (minSlab ? 100 : 1))}
             aria-label="Increase quantity"
           >
             <Plus className="size-4" />
           </button>
         </div>
+        {minSlab && (
+          <p className="mt-1.5 text-xs text-text-muted">Custom quantity in steps of 100</p>
+        )}
       </div>
 
       {/* Artwork upload */}
       <div>
-        <Label className="mb-2 block">Upload Artwork (optional)</Label>
-        <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border bg-surface px-6 py-8 text-center transition-colors hover:border-primary/40">
-          <Upload className="size-6 text-text-muted" />
+        <div className="mb-2 flex items-center justify-between">
+          <Label>Upload Your Design</Label>
+          {guidelines.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setGuidelinesOpen(true)}
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              <Info className="size-3.5" /> Guidelines
+            </button>
+          )}
+        </div>
+        <label
+          className={cn(
+            "flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors",
+            dragOver
+              ? "border-primary bg-primary/5"
+              : "border-border bg-surface hover:border-primary/40"
+          )}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleFileDrop}
+        >
+          <Upload className="size-8 text-text-muted" />
           {file ? (
             <span className="flex items-center gap-2 text-sm font-medium text-text">
               <FileText className="size-4" /> {file.name}
             </span>
           ) : (
             <>
-              <span className="text-sm font-medium text-text">Click to upload or drag and drop</span>
-              <span className="text-xs text-text-muted">PDF, AI, PNG or JPG up to 50MB</span>
+              <span className="text-sm font-medium text-text">
+                Drag & drop your file here, or <span className="text-primary">browse</span>
+              </span>
+              <span className="text-xs text-text-muted">PDF, AI, PSD, PNG, JPG (up to 50MB)</span>
             </>
           )}
           <input type="file" className="hidden" accept=".pdf,.ai,.eps,.psd,.png,.jpg,.jpeg" onChange={handleFileChange} />
         </label>
       </div>
 
-      {/* Price breakdown */}
+      {/* Order summary */}
       {breakdown && (
-        <div className="rounded-lg border border-border p-4">
-          <h3 className="text-sm font-semibold text-text mb-2">Price Breakdown</h3>
-          <dl className="flex flex-col gap-1.5 text-sm">
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <h3 className="text-sm font-semibold text-text mb-3">Order Summary</h3>
+          <dl className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-text-muted">Base price</dt>
-              <dd className="text-text">{formatPrice(breakdown.base_unit_price)}</dd>
+              <dt className="text-text-muted">
+                Base price ({quantity.toLocaleString("en-IN")} pcs)
+              </dt>
+              <dd className="text-text font-medium">
+                {formatPrice(breakdown.base_unit_price * quantity)}
+              </dd>
             </div>
             {breakdown.modifiers.paper_size && breakdown.modifiers.paper_size.amount !== 0 && (
               <div className="flex justify-between">
                 <dt className="text-text-muted">{breakdown.modifiers.paper_size.name}</dt>
-                <dd className="text-text">{formatPrice(breakdown.modifiers.paper_size.amount)}</dd>
+                <dd className="text-text">{formatPrice(breakdown.modifiers.paper_size.amount * quantity)}</dd>
               </div>
             )}
             {breakdown.modifiers.paper_type && breakdown.modifiers.paper_type.amount !== 0 && (
               <div className="flex justify-between">
                 <dt className="text-text-muted">{breakdown.modifiers.paper_type.name}</dt>
-                <dd className="text-text">{formatPrice(breakdown.modifiers.paper_type.amount)}</dd>
+                <dd className="text-text">{formatPrice(breakdown.modifiers.paper_type.amount * quantity)}</dd>
               </div>
             )}
             {breakdown.modifiers.paper_quality && breakdown.modifiers.paper_quality.amount !== 0 && (
               <div className="flex justify-between">
                 <dt className="text-text-muted">{breakdown.modifiers.paper_quality.name}</dt>
-                <dd className="text-text">{formatPrice(breakdown.modifiers.paper_quality.amount)}</dd>
+                <dd className="text-text">{formatPrice(breakdown.modifiers.paper_quality.amount * quantity)}</dd>
               </div>
             )}
             {breakdown.modifiers.quantity_slab && breakdown.modifiers.quantity_slab.amount !== 0 && (
               <div className="flex justify-between">
-                <dt className="text-text-muted">Quantity discount/adjustment</dt>
-                <dd className="text-text">{formatPrice(breakdown.modifiers.quantity_slab.amount)}</dd>
+                <dt className="text-text-muted">Quantity adjustment</dt>
+                <dd className="text-text">{formatPrice(breakdown.modifiers.quantity_slab.amount * quantity)}</dd>
               </div>
             )}
             {breakdown.modifiers.city && breakdown.modifiers.city.amount !== 0 && (
               <div className="flex justify-between">
                 <dt className="text-text-muted">Location adjustment</dt>
-                <dd className="text-text">{formatPrice(breakdown.modifiers.city.amount)}</dd>
+                <dd className="text-text">{formatPrice(breakdown.modifiers.city.amount * quantity)}</dd>
               </div>
             )}
             {breakdown.modifiers.custom_fields?.map((row) => (
               <div key={row.product_field_id} className="flex justify-between">
                 <dt className="text-text-muted">{row.label}</dt>
-                <dd className="text-text">{formatPrice(row.amount)}</dd>
+                <dd className="text-text">{formatPrice(row.amount * quantity)}</dd>
               </div>
             ))}
-            <div className="flex justify-between border-t border-border pt-1.5 font-semibold">
-              <dt className="text-text">Unit price</dt>
-              <dd className="text-text">{formatPrice(breakdown.unit_price)}</dd>
+
+            <div className="flex justify-between border-t border-border pt-3 mt-1">
+              <dt className="font-semibold text-text">Total</dt>
+              <dd className="font-bold text-lg text-text">{formatPrice(breakdown.total_price)}</dd>
             </div>
+            <p className="text-[11px] text-text-muted">
+              {formatPrice(breakdown.unit_price)} per unit · Inclusive of taxes
+            </p>
           </dl>
+
+          {priceError && <p className="mt-2 text-sm text-danger">{priceError}</p>}
+          {loadingPrice && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
+              <Loader2 className="size-3 animate-spin" /> Calculating...
+            </div>
+          )}
+          {completion && !priceError && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
+              <Clock className="size-3.5" /> Estimated production time: {completion}
+            </p>
+          )}
+          <p className="mt-1 text-[11px] text-text-muted">Final price confirmed at checkout.</p>
         </div>
       )}
 
-      {/* Add to cart */}
+      {/* CTA buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={!canAddToCart}>
           {added ? (
@@ -632,6 +678,36 @@ export function ProductConfigurator({ product }: { product: Product }) {
           Buy Now
         </Button>
       </div>
+
+      {/* Trust badges */}
+      <TrustBadges />
+
+      {/* Guidelines drawer */}
+      <Sheet open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
+        <SheetContent side="right" className="overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Design guidelines</SheetTitle>
+            <p className="text-sm text-text-muted">Follow these to make sure your file prints exactly as you expect.</p>
+          </SheetHeader>
+          <div className="space-y-5">
+            {guidelines.map((g, i) => (
+              <div key={i} className="flex items-start gap-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  {g.icon_url ? (
+                    <Image src={g.icon_url} alt={g.title} width={24} height={24} className="size-6 object-contain" />
+                  ) : (
+                    <span className="text-sm font-bold text-primary">{i + 1}</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-semibold text-text">{i + 1}. {g.title}</h4>
+                  <p className="mt-0.5 text-sm text-text-muted">{g.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
