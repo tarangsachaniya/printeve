@@ -19,26 +19,15 @@ interface CartContextValue {
 const CartContext = React.createContext<CartContextValue | null>(null);
 
 function makeKey(item: CartItem): string {
-  const customFields = item.selection.custom_fields ?? {};
-  const customFieldsKey = Object.keys(customFields)
+  const optionsKey = [...(item.selection.options ?? [])]
+    .map((o) => o.field_option_value_id)
     .sort()
-    .map((id) => {
-      const value = customFields[id].value;
-      return `${id}=${Array.isArray(value) ? [...value].sort().join(",") : value}`;
-    })
     .join("|");
 
   const dims = item.selection.custom_dimensions;
   const dimsKey = dims ? `${dims.width}x${dims.height}${dims.unit}` : "";
 
-  return [
-    item.productId,
-    item.selection.paper_size?.id ?? "",
-    item.selection.paper_quality?.id ?? "",
-    item.selection.paper_type?.id ?? "",
-    customFieldsKey,
-    dimsKey,
-  ].join("::");
+  return [item.productId, optionsKey, dimsKey].join("::");
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {

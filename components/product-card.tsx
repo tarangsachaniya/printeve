@@ -25,7 +25,7 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="mt-3 flex items-center justify-between">
           <div>
             <span className="text-xs text-text-muted">From</span>
-            <p className="text-base font-bold text-text">{formatPrice(product.base_price)}</p>
+            <p className="text-base font-bold text-text">{product.starting_price != null ? formatPrice(product.starting_price) : "—"}</p>
           </div>
           <span className="flex items-center gap-1 text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
             View <ArrowRight className="size-4" />

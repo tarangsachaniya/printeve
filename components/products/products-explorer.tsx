@@ -44,10 +44,10 @@ export function ProductsExplorer({ products }: { products: Product[] }) {
     const sorted = [...result];
     switch (sort) {
       case "price-asc":
-        sorted.sort((a, b) => a.base_price - b.base_price);
+        sorted.sort((a, b) => (a.starting_price ?? 0) - (b.starting_price ?? 0));
         break;
       case "price-desc":
-        sorted.sort((a, b) => b.base_price - a.base_price);
+        sorted.sort((a, b) => (b.starting_price ?? 0) - (a.starting_price ?? 0));
         break;
       case "name-asc":
         sorted.sort((a, b) => a.name.localeCompare(b.name));

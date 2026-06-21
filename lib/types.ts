@@ -1,35 +1,19 @@
-export interface VariantOption {
+export interface ProductOption {
   id: string;
-  paper_size_id?: string;
-  paper_quality_id?: string;
-  paper_type_id?: string;
-  name: string;
-  price_modifier: number;
-  is_default: boolean;
-}
-
-export interface QuantitySlab {
-  id: string;
-  min_qty: number;
-  max_qty: number | null;
-  price_modifier: number;
-  max_completion_minutes: number | null;
-}
-
-export interface CustomFieldOption {
-  id: string;
-  name: string;
-  price_modifier: number;
-  is_default: boolean;
-}
-
-export interface CustomField {
-  product_field_id: string;
+  field_definition_id: string;
   key: string;
   label: string;
-  field_type: "select" | "multi_select" | "boolean" | "number" | "text" | "textarea" | "file_upload" | "radio";
+  field_type: string;
   is_required: boolean;
-  options: CustomFieldOption[];
+  sort_order: number;
+  values: { id: string; field_option_value_id: string; value: string; is_default: boolean }[];
+}
+
+export interface PriceLookupResult {
+  quantity: number;
+  price: number;
+  max_completion_minutes: number | null;
+  selected_options: { option_label: string; value_label: string; field_option_value_id: string }[];
 }
 
 export interface FAQ {
@@ -52,24 +36,21 @@ export interface Product {
   id: string;
   name: string;
   slug: string;
-  base_price: number;
   description: string | null;
   images: string[];
   video_url: string | null;
   created_at: string;
-  paper_sizes: VariantOption[];
-  paper_qualities: VariantOption[];
-  paper_types: VariantOption[];
-  quantity_slabs: QuantitySlab[];
-  custom_fields: CustomField[];
+  options: ProductOption[];
+  available_quantities: number[];
+  starting_price: number | null;
   faqs: FAQ[];
   finish_and_care: string[];
   guidelines: Guideline[];
   specifications: Specification[];
   city_id: string | null;
-  city_pricing_applied: boolean;
+
   category: { id: string; title: string; slug: string } | null;
-  related_products: { id: string; name: string; slug: string; base_price: number; images: string[] }[];
+  related_products: { id: string; name: string; slug: string; images: string[]; starting_price: number | null }[];
 }
 
 export interface ProductListResponse {
@@ -90,23 +71,6 @@ export interface City {
   id: string;
   name: string;
   state: string;
-}
-
-export interface PriceBreakdown {
-  quantity: number;
-  base_unit_price: number;
-  modifiers: {
-    paper_size: { id: string; name: string; amount: number } | null;
-    paper_quality: { id: string; name: string; amount: number } | null;
-    paper_type: { id: string; name: string; amount: number } | null;
-    quantity_slab: { amount: number } | null;
-    city?: { amount: number } | null;
-    custom_fields?: { product_field_id: string; label: string; amount: number }[];
-  };
-  unit_price: number;
-  total_price: number;
-  matched_slab: { min_qty: number; max_qty: number | null } | null;
-  max_completion_minutes: number | null;
 }
 
 export type OrderStatus =
@@ -178,6 +142,12 @@ export interface CustomDimensions {
   unit: DimensionUnit;
 }
 
+export interface SelectedOption {
+  option_label: string;
+  value_label: string;
+  field_option_value_id: string;
+}
+
 export interface CartItem {
   productId: string;
   name: string;
@@ -187,10 +157,7 @@ export interface CartItem {
   unitPrice: number;
   totalPrice: number;
   selection: {
-    paper_size?: { id: string; name: string };
-    paper_quality?: { id: string; name: string };
-    paper_type?: { id: string; name: string };
-    custom_fields?: Record<string, { value: string | string[]; label: string; modifier: number }>;
+    options: SelectedOption[];
     custom_dimensions?: CustomDimensions;
   };
   artworkFileName?: string;

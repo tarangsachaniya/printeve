@@ -68,12 +68,9 @@ export function CartSheet() {
                         <p className="text-sm font-medium text-text line-clamp-1">{item.name}</p>
                         <p className="text-xs text-text-muted mt-0.5">
                           {[
-                            item.selection.paper_size?.name,
+                            ...(item.selection.options ?? []).map((o) => `${o.option_label}: ${o.value_label}`),
                             item.selection.custom_dimensions &&
                               `${item.selection.custom_dimensions.width} × ${item.selection.custom_dimensions.height} ${item.selection.custom_dimensions.unit}`,
-                            item.selection.paper_type?.name,
-                            item.selection.paper_quality?.name,
-                            ...Object.values(item.selection.custom_fields ?? {}).map((f) => f.label),
                           ]
                             .filter(Boolean)
                             .join(" · ")}

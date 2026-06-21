@@ -10,7 +10,7 @@ interface RelatedProduct {
   id: string;
   name: string;
   slug: string;
-  base_price: number;
+  starting_price: number | null;
   images: string[];
 }
 
@@ -143,7 +143,7 @@ export function SimilarProductsCarousel({
                     From
                   </span>
                   <span className="text-lg font-bold text-text">
-                    {formatPrice(product.base_price)}
+                    {product.starting_price != null ? formatPrice(product.starting_price) : "—"}
                   </span>
                 </div>
 
