@@ -28,31 +28,36 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="mx-auto max-w-7xl container-px py-10 lg:py-14">
-      <nav className="mb-6 flex items-center gap-1.5 text-sm text-text-muted">
-        <Link href="/" className="hover:text-primary transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="size-3.5" />
-        {product.category ? (
-          <>
-            <Link
-              href={`/products?category=${product.category.slug}`}
-              className="hover:text-primary transition-colors"
-            >
-              {product.category.title}
-            </Link>
-            <ChevronRight className="size-3.5" />
-          </>
-        ) : (
-          <>
-            <Link href="/products" className="hover:text-primary transition-colors">
-              Products
-            </Link>
-            <ChevronRight className="size-3.5" />
-          </>
-        )}
-        <span className="text-text">{product.name}</span>
-      </nav>
+      <div className="sticky top-24 z-30 mb-6 border-b border-border/60 bg-background/95 py-2.5 backdrop-blur-sm">
+        <nav className="flex items-center gap-1.5 text-sm text-text-muted">
+          <Link href="/" className="hover:text-primary transition-colors">
+            Home
+          </Link>
+
+          <ChevronRight className="size-3.5 shrink-0" />
+
+          {product.category ? (
+            <>
+              <Link
+                href={`/products?category=${product.category.slug}`}
+                className="hover:text-primary transition-colors"
+              >
+                {product.category.title}
+              </Link>
+              <ChevronRight className="size-3.5 shrink-0" />
+            </>
+          ) : (
+            <>
+              <Link href="/products" className="hover:text-primary transition-colors">
+                Products
+              </Link>
+              <ChevronRight className="size-3.5 shrink-0" />
+            </>
+          )}
+
+          <span className="truncate text-text">{product.name}</span>
+        </nav>
+      </div>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div className="lg:sticky lg:top-24 lg:self-start">
