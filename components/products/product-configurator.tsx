@@ -39,10 +39,33 @@ export function ProductConfigurator({ product }: { product: Product }) {
     return initial;
   });
 
-  const [quantity, setQuantity] = React.useState(product.available_quantities[0] ?? 1);
+  const tiers = React.useMemo(() => {
+    const qs = product.available_quantities;
+    if (qs.length === 0) return [];
+    if (qs.length === 1) return [qs[0]];
+    if (qs.length === 2) return [qs[0], qs[qs.length - 1]];
+    const min = qs[0];
+    const max = qs[qs.length - 1];
+    const midTarget = Math.round((min + max) / 2);
+    const mid = qs.reduce((prev, curr) =>
+      Math.abs(curr - midTarget) < Math.abs(prev - midTarget) ? curr : prev
+    );
+    if (mid === min || mid === max) {
+      const midIdx = Math.floor(qs.length / 2);
+      return [min, qs[midIdx], max];
+    }
+    return [min, mid, max];
+  }, [product.available_quantities]);
+
+  const minQty = tiers[0] ?? 1;
+
+  const [quantity, setQuantity] = React.useState(tiers[0] ?? 1);
   const [priceLookup, setPriceLookup] = React.useState<PriceLookupResult | null>(null);
   const [priceError, setPriceError] = React.useState<string | null>(null);
   const [loadingPrice, setLoadingPrice] = React.useState(false);
+  const [tierPrices, setTierPrices] = React.useState<Record<number, PriceLookupResult | null>>({});
+  const [loadingTiers, setLoadingTiers] = React.useState(false);
+  const isCustomQuantity = !tiers.includes(quantity);
   const [file, setFile] = React.useState<File | null>(null);
   const [added, setAdded] = React.useState(false);
   const [dragOver, setDragOver] = React.useState(false);
@@ -65,7 +88,48 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const customDimensionsValid =
     !showCustomDimensions || (Number(customWidth) > 0 && Number(customHeight) > 0);
 
+  // Fetch prices for all 3 tier quantities whenever options change
   React.useEffect(() => {
+    setTierPrices({});
+    if (optionValueIds.length === 0 || tiers.length === 0) return;
+    setLoadingTiers(true);
+
+    const timeout = setTimeout(async () => {
+      try {
+        const data = await api.post<Record<number, PriceLookupResult | null>>(
+          `/products/${product.slug}/prices`,
+          { option_value_ids: optionValueIds, quantities: tiers, city_id: cityId || undefined }
+        );
+        setTierPrices(data);
+        // If selected quantity is a tier, use the tier price directly
+        if (tiers.includes(quantity) && data[quantity]) {
+          setPriceLookup(data[quantity]);
+          setPriceError(null);
+        }
+      } catch {
+        // silently fail tier fetch
+      } finally {
+        setLoadingTiers(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optionValueIds.join(","), cityId, product.slug, tiers.join(",")]);
+
+  // When user picks a tier quantity, apply cached tier price immediately
+  React.useEffect(() => {
+    if (tiers.includes(quantity) && tierPrices[quantity]) {
+      setPriceLookup(tierPrices[quantity]);
+      setPriceError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quantity, JSON.stringify(tierPrices)]);
+
+  // Fetch price for custom (non-tier) quantities only
+  React.useEffect(() => {
+    if (tiers.includes(quantity)) return;
+
     setPriceError(null);
     setPriceLookup(null);
 
@@ -175,58 +239,82 @@ export function ProductConfigurator({ product }: { product: Product }) {
         )}
       </div>
 
-      {/* Quantity tier buttons */}
+      {/* Quantity tier cards */}
       {hasQuantities && (
         <div>
-          <Label className="mb-2 block">Quantity</Label>
-          <div className="flex flex-wrap gap-2">
-            {product.available_quantities.map((qty) => (
-              <button
-                key={qty}
-                onClick={() => setQuantity(qty)}
-                className={cn(
-                  "rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
-                  quantity === qty
-                    ? "border-primary bg-primary/10 text-primary shadow-sm"
-                    : "border-border bg-surface text-text hover:border-primary/40"
-                )}
-              >
-                {qty.toLocaleString("en-IN")} pcs
-              </button>
-            ))}
+          <div className="mb-3 flex items-center justify-between">
+            <Label>Quantity</Label>
+            <span className="text-xs font-medium text-primary">Min {minQty.toLocaleString("en-IN")} pcs</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {tiers.map((qty, i) => {
+              const tierPrice = tierPrices[qty];
+              const isSelected = quantity === qty;
+              const tier1Price = tierPrices[tiers[0]];
+              let savingsPercent = 0;
+              if (i > 0 && tierPrice && tier1Price) {
+                const unitPriceTier1 = tier1Price.price / tiers[0];
+                const unitPriceThis = tierPrice.price / qty;
+                savingsPercent = Math.round((1 - unitPriceThis / unitPriceTier1) * 100);
+              }
+              return (
+                <button
+                  key={qty}
+                  onClick={() => setQuantity(qty)}
+                  className={cn(
+                    "relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all",
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border bg-surface hover:border-primary/40"
+                  )}
+                >
+                  {savingsPercent > 0 && (
+                    <span className="absolute -top-2.5 right-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                      Save {savingsPercent}%
+                    </span>
+                  )}
+                  <span className="text-xl font-bold text-text">{qty.toLocaleString("en-IN")}</span>
+                  <span className="text-xs text-text-muted">pcs</span>
+                  <span className="mt-1 text-sm font-semibold text-text">
+                    {loadingTiers ? "—" : tierPrice ? formatPrice(tierPrice.price) : "—"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Custom quantity input */}
       <div>
-        {hasQuantities && <Label className="mb-2 block text-xs text-text-muted">Or enter custom quantity</Label>}
-        {!hasQuantities && <Label className="mb-2 block">Quantity</Label>}
-        <div className="flex h-11 w-48 items-center rounded-md border border-border">
+        <div className="flex h-11 w-full max-w-xs items-center rounded-md border border-border">
           <button
             className="flex h-full w-11 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40"
-            onClick={() => setQuantity((q) => Math.max(1, q - (hasQuantities ? 100 : 1)))}
-            disabled={quantity <= 1}
+            onClick={() => setQuantity((q) => Math.max(minQty, q - minQty))}
+            disabled={quantity <= minQty}
             aria-label="Decrease quantity"
           >
             <Minus className="size-4" />
           </button>
           <input
             type="number"
-            min={1}
+            min={minQty}
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+            onChange={(e) => setQuantity(Math.max(minQty, Number(e.target.value) || minQty))}
             className="h-full w-full flex-1 border-x border-border bg-background text-center text-sm font-medium text-text focus-ring"
             aria-label="Quantity"
           />
           <button
             className="flex h-full w-11 items-center justify-center text-text-muted transition-colors hover:text-primary"
-            onClick={() => setQuantity((q) => q + (hasQuantities ? 100 : 1))}
+            onClick={() => setQuantity((q) => q + minQty)}
             aria-label="Increase quantity"
           >
             <Plus className="size-4" />
           </button>
         </div>
+        {hasQuantities && (
+          <p className="mt-1.5 text-xs text-text-muted">Custom quantity in steps of {minQty.toLocaleString("en-IN")}</p>
+        )}
       </div>
 
       {/* Dynamic product options */}
@@ -388,12 +476,12 @@ export function ProductConfigurator({ product }: { product: Product }) {
           </dl>
         )}
 
-        {!priceLookup && !priceError && !loadingPrice && (
+        {!priceLookup && !priceError && !loadingPrice && !loadingTiers && (
           <p className="text-sm text-text-muted">Select options and quantity to see pricing.</p>
         )}
 
         {priceError && <p className="mt-2 text-sm text-danger">{priceError}</p>}
-        {loadingPrice && (
+        {(loadingPrice || (loadingTiers && !priceLookup)) && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
             <Loader2 className="size-3 animate-spin" /> Calculating...
           </div>
