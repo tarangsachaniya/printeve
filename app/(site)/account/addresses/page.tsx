@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, MapPin, Pencil, Trash2, Star, Loader2 } from "lucide-react";
+import { Plus, MapPin, Pencil, Trash2, Star, Loader2, LocateFixed } from "lucide-react";
 import type { Address } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -28,6 +28,8 @@ const EMPTY_FORM: Omit<Address, "id"> = {
   state: "",
   pincode: "",
   isDefault: false,
+  latitude: null,
+  longitude: null,
 };
 
 export default function AddressesPage() {
@@ -40,6 +42,7 @@ export default function AddressesPage() {
   const [profileDefaults, setProfileDefaults] = React.useState({ fullName: "", phone: "" });
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [locating, setLocating] = React.useState(false);
 
   React.useEffect(() => {
     api
@@ -77,8 +80,30 @@ export default function AddressesPage() {
       state: address.state,
       pincode: address.pincode,
       isDefault: address.isDefault,
+      latitude: address.latitude ?? null,
+      longitude: address.longitude ?? null,
     });
     setOpen(true);
+  }
+
+  function captureLocation() {
+    if (!("geolocation" in navigator)) {
+      setError("Location is not supported by your browser.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        update("latitude", Number(pos.coords.latitude.toFixed(6)));
+        update("longitude", Number(pos.coords.longitude.toFixed(6)));
+        setLocating(false);
+      },
+      () => {
+        setError("Unable to get your location. Please allow location access.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -243,6 +268,28 @@ export default function AddressesPage() {
                   className="size-4 rounded border-border text-primary focus-ring"
                 />
                 <Label htmlFor="isDefault">Set as default address</Label>
+              </div>
+
+              <div className="sm:col-span-2 flex flex-col gap-2 rounded-md border border-border bg-surface/40 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-text">Delivery location</p>
+                    <p className="text-xs text-text-muted">
+                      Helps us route your order to the nearest printer.
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={captureLocation} disabled={locating}>
+                    {locating ? <Loader2 className="size-4 animate-spin" /> : <LocateFixed className="size-4" />}
+                    {locating ? "Locating…" : "Use my location"}
+                  </Button>
+                </div>
+                {form.latitude != null && form.longitude != null ? (
+                  <p className="text-xs font-medium text-primary">
+                    Location set ({form.latitude.toFixed(5)}, {form.longitude.toFixed(5)})
+                  </p>
+                ) : (
+                  <p className="text-xs text-text-muted">No location set yet.</p>
+                )}
               </div>
             </div>
             <Button type="submit" size="lg" className="mt-2">

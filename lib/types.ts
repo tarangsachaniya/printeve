@@ -16,6 +16,14 @@ export interface PriceLookupResult {
   selected_options: { option_label: string; value_label: string; field_option_value_id: string }[];
 }
 
+export interface PricingMatrixRow {
+  quantity: number;
+  price: number;
+  max_completion_minutes: number | null;
+  city_id: string | null;
+  option_value_ids: string[];
+}
+
 export interface FAQ {
   question: string;
   answer: string;
@@ -43,6 +51,7 @@ export interface Product {
   options: ProductOption[];
   available_quantities: number[];
   starting_price: number | null;
+  pricing_matrix: PricingMatrixRow[];
   faqs: FAQ[];
   finish_and_care: string[];
   guidelines: Guideline[];
@@ -132,6 +141,9 @@ export interface Address {
   state: string;
   pincode: string;
   isDefault?: boolean;
+  /** Customer-provided delivery coordinates, used for printer radius matching. */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export type DimensionUnit = "mm" | "cm" | "in";

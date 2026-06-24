@@ -3,9 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Upload, Clock, CheckCircle2, FileText, Minus, Plus, ShoppingCart, Loader2, Star, Info } from "lucide-react";
-import type { Product, PriceLookupResult, DimensionUnit } from "@/lib/types";
-import { api, ApiError } from "@/lib/api";
+import { Upload, Clock, CheckCircle2, FileText, Minus, Plus, ShoppingCart, Star, Info } from "lucide-react";
+import type { Product, PriceLookupResult, PricingMatrixRow, DimensionUnit } from "@/lib/types";
 import { defaultOptionValue } from "@/lib/pricing";
 import { useCart } from "@/lib/cart";
 import { useCity } from "@/lib/city";
@@ -60,12 +59,6 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const minQty = tiers[0] ?? 1;
 
   const [quantity, setQuantity] = React.useState(tiers[0] ?? 1);
-  const [priceLookup, setPriceLookup] = React.useState<PriceLookupResult | null>(null);
-  const [priceError, setPriceError] = React.useState<string | null>(null);
-  const [loadingPrice, setLoadingPrice] = React.useState(false);
-  const [tierPrices, setTierPrices] = React.useState<Record<number, PriceLookupResult | null>>({});
-  const [loadingTiers, setLoadingTiers] = React.useState(false);
-  const isCustomQuantity = !tiers.includes(quantity);
   const [file, setFile] = React.useState<File | null>(null);
   const [added, setAdded] = React.useState(false);
   const [dragOver, setDragOver] = React.useState(false);
@@ -88,74 +81,81 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const customDimensionsValid =
     !showCustomDimensions || (Number(customWidth) > 0 && Number(customHeight) > 0);
 
-  // Fetch prices for all 3 tier quantities whenever options change
-  React.useEffect(() => {
-    setTierPrices({});
-    if (optionValueIds.length === 0 || tiers.length === 0) return;
-    setLoadingTiers(true);
+  // Pricing is computed entirely client-side from the embedded pricing_matrix —
+  // no per-selection API calls. We match only the pricing-relevant option ids so
+  // non-pricing selections (e.g. optional finishes) don't break the lookup.
+  const pricingRelevantIds = React.useMemo(
+    () => new Set(product.pricing_matrix.flatMap((r) => r.option_value_ids)),
+    [product.pricing_matrix]
+  );
 
-    const timeout = setTimeout(async () => {
-      try {
-        const data = await api.post<Record<number, PriceLookupResult | null>>(
-          `/products/${product.slug}/prices`,
-          { option_value_ids: optionValueIds, quantities: tiers, city_id: cityId || undefined }
-        );
-        setTierPrices(data);
-        // If selected quantity is a tier, use the tier price directly
-        if (tiers.includes(quantity) && data[quantity]) {
-          setPriceLookup(data[quantity]);
-          setPriceError(null);
-        }
-      } catch {
-        // silently fail tier fetch
-      } finally {
-        setLoadingTiers(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [optionValueIds.join(","), cityId, product.slug, tiers.join(",")]);
-
-  // When user picks a tier quantity, apply cached tier price immediately
-  React.useEffect(() => {
-    if (tiers.includes(quantity) && tierPrices[quantity]) {
-      setPriceLookup(tierPrices[quantity]);
-      setPriceError(null);
+  // City-specific rows when any exist, else the all-cities (null) rows — mirrors
+  // the server's previous city fallback in PricingService.lookupPrice.
+  const cityMatrix = React.useMemo(() => {
+    const matrix = product.pricing_matrix;
+    if (cityId) {
+      const cityRows = matrix.filter((r) => r.city_id === cityId);
+      if (cityRows.length) return cityRows;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quantity, JSON.stringify(tierPrices)]);
+    return matrix.filter((r) => r.city_id == null);
+  }, [product.pricing_matrix, cityId]);
 
-  // Fetch price for custom (non-tier) quantities only
-  React.useEffect(() => {
-    if (tiers.includes(quantity)) return;
+  const priceIndex = React.useMemo(() => {
+    const map = new Map<string, PricingMatrixRow>();
+    for (const row of cityMatrix) {
+      map.set([...row.option_value_ids].sort().join("|") + "#" + row.quantity, row);
+    }
+    return map;
+  }, [cityMatrix]);
 
-    setPriceError(null);
-    setPriceLookup(null);
+  const selectedPricingKey = React.useMemo(
+    () => optionValueIds.filter((id) => pricingRelevantIds.has(id)).sort().join("|"),
+    [optionValueIds, pricingRelevantIds]
+  );
 
-    if (optionValueIds.length === 0 || quantity <= 0) return;
-
-    const timeout = setTimeout(async () => {
-      setLoadingPrice(true);
-      try {
-        const data = await api.post<PriceLookupResult>(`/products/${product.slug}/price`, {
-          option_value_ids: optionValueIds,
-          quantity,
-          city_id: cityId || undefined,
-        });
-        setPriceLookup(data);
-        setPriceError(null);
-      } catch (err) {
-        if (err instanceof ApiError) setPriceError(err.message);
-        else setPriceError("Failed to get price");
-      } finally {
-        setLoadingPrice(false);
+  // Exact tier match, else interpolate from the highest tier <= qty (per-unit price).
+  const lookupPrice = React.useCallback(
+    (qty: number): { price: number; max_completion_minutes: number | null } | null => {
+      if (!Number.isFinite(qty) || qty <= 0) return null;
+      const exact = priceIndex.get(selectedPricingKey + "#" + qty);
+      if (exact) return { price: exact.price, max_completion_minutes: exact.max_completion_minutes };
+      let floor: PricingMatrixRow | null = null;
+      for (const t of tiers) {
+        if (t > qty) break;
+        const row = priceIndex.get(selectedPricingKey + "#" + t);
+        if (row) floor = row;
       }
-    }, 400);
+      if (!floor) return null;
+      const price = Math.round((floor.price / floor.quantity) * qty * 100) / 100;
+      return { price, max_completion_minutes: floor.max_completion_minutes };
+    },
+    [priceIndex, selectedPricingKey, tiers]
+  );
 
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [optionValueIds.join(","), quantity, cityId, product.slug]);
+  const tierPrices = React.useMemo(() => {
+    const out: Record<number, PriceLookupResult | null> = {};
+    for (const qty of tiers) {
+      const r = lookupPrice(qty);
+      out[qty] = r
+        ? { quantity: qty, price: r.price, max_completion_minutes: r.max_completion_minutes, selected_options: [] }
+        : null;
+    }
+    return out;
+  }, [lookupPrice, tiers]);
+
+  const priceLookup = React.useMemo<PriceLookupResult | null>(() => {
+    const r = lookupPrice(quantity);
+    if (!r) return null;
+    const selected_options = product.options
+      .map((option) => {
+        const selectedValueId = selectedOptions[option.id];
+        const value = option.values.find((v) => v.field_option_value_id === selectedValueId);
+        if (!selectedValueId || !value) return null;
+        return { option_label: option.label, value_label: value.value, field_option_value_id: selectedValueId };
+      })
+      .filter(Boolean) as PriceLookupResult["selected_options"];
+    return { quantity, price: r.price, max_completion_minutes: r.max_completion_minutes, selected_options };
+  }, [lookupPrice, quantity, product.options, selectedOptions]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -212,7 +212,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
   }
 
   const completion = formatCompletion(priceLookup?.max_completion_minutes ?? null);
-  const canAddToCart = !!priceLookup && !priceError && customDimensionsValid;
+  const canAddToCart = !!priceLookup && customDimensionsValid;
   const hasQuantities = product.available_quantities.length > 0;
 
   return (
@@ -276,7 +276,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
                   <span className="text-xl font-bold text-text">{qty.toLocaleString("en-IN")}</span>
                   <span className="text-xs text-text-muted">pcs</span>
                   <span className="mt-1 text-sm font-semibold text-text">
-                    {loadingTiers ? "—" : tierPrice ? formatPrice(tierPrice.price) : "—"}
+                    {tierPrice ? formatPrice(tierPrice.price) : "—"}
                   </span>
                 </button>
               );
@@ -476,17 +476,11 @@ export function ProductConfigurator({ product }: { product: Product }) {
           </dl>
         )}
 
-        {!priceLookup && !priceError && !loadingPrice && !loadingTiers && (
+        {!priceLookup && (
           <p className="text-sm text-text-muted">Select options and quantity to see pricing.</p>
         )}
 
-        {priceError && <p className="mt-2 text-sm text-danger">{priceError}</p>}
-        {(loadingPrice || (loadingTiers && !priceLookup)) && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
-            <Loader2 className="size-3 animate-spin" /> Calculating...
-          </div>
-        )}
-        {completion && !priceError && (
+        {completion && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
             <Clock className="size-3.5" /> Estimated production time: {completion}
           </p>
