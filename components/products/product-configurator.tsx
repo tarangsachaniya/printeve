@@ -85,14 +85,14 @@ export function ProductConfigurator({ product }: { product: Product }) {
   // no per-selection API calls. We match only the pricing-relevant option ids so
   // non-pricing selections (e.g. optional finishes) don't break the lookup.
   const pricingRelevantIds = React.useMemo(
-    () => new Set(product.pricing_matrix.flatMap((r) => r.option_value_ids)),
+    () => new Set((product.pricing_matrix ?? []).flatMap((r) => r.option_value_ids)),
     [product.pricing_matrix]
   );
 
   // City-specific rows when any exist, else the all-cities (null) rows — mirrors
   // the server's previous city fallback in PricingService.lookupPrice.
   const cityMatrix = React.useMemo(() => {
-    const matrix = product.pricing_matrix;
+    const matrix = product.pricing_matrix ?? [];
     if (cityId) {
       const cityRows = matrix.filter((r) => r.city_id === cityId);
       if (cityRows.length) return cityRows;
