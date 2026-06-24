@@ -28,7 +28,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="mx-auto max-w-7xl container-px py-10 lg:py-14">
-      <div className="sticky top-24 z-30 mb-6 border-b border-border/60 bg-background/95 py-2.5 backdrop-blur-sm">
+      <div className="mb-6 border-b border-border/60 py-2.5">
         <nav className="flex items-center gap-1.5 text-sm text-text-muted">
           <Link href="/" className="hover:text-primary transition-colors">
             Home
