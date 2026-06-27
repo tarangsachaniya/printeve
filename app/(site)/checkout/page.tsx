@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ShieldCheck, Loader2, Lock, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useSiteSettings } from "@/lib/site-settings";
 import { formatPrice, cn } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const EMPTY_ADDRESS: AddressForm = {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
+  const settings = useSiteSettings();
 
   const [step, setStep] = React.useState<Step>("address");
   const [address, setAddress] = React.useState<AddressForm>(EMPTY_ADDRESS);
@@ -139,8 +141,12 @@ export default function CheckoutPage() {
         <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-surface">
           <ShoppingBag className="size-7 text-text-muted" />
         </div>
-        <h1 className="mt-5 text-2xl font-bold text-text">Your cart is empty</h1>
-        <p className="mt-2 text-sm text-text-muted">Add some products before checking out.</p>
+        <h1 className="mt-5 text-2xl font-bold text-text">
+          {settings.empty_cart_title || "Your cart is empty"}
+        </h1>
+        <p className="mt-2 text-sm text-text-muted">
+          {settings.empty_cart_subtitle || "Add some products before checking out."}
+        </p>
         <Button asChild size="lg" className="mt-6">
           <Link href="/products">Browse Products</Link>
         </Button>

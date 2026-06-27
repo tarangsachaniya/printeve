@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Package, ChevronRight, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useSiteSettings } from "@/lib/site-settings";
 import type { Order } from "@/lib/types";
 import { formatPrice, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ function formatStatus(status: string) {
 
 export default function OrdersPage() {
   const [orders, setOrders] = React.useState<Order[] | null>(null);
+  const settings = useSiteSettings();
 
   React.useEffect(() => {
     api
@@ -47,9 +49,12 @@ export default function OrdersPage() {
             <div className="flex size-14 items-center justify-center rounded-full bg-surface">
               <Package className="size-6 text-text-muted" />
             </div>
-            <h2 className="text-lg font-semibold text-text">No orders yet</h2>
+            <h2 className="text-lg font-semibold text-text">
+              {settings.empty_orders_title || "No orders yet"}
+            </h2>
             <p className="max-w-sm text-sm text-text-muted">
-              When you place an order, it will show up here with its status and tracking details.
+              {settings.empty_orders_subtitle ||
+                "When you place an order, it will show up here with its status and tracking details."}
             </p>
             <Button asChild className="mt-2">
               <Link href="/products">Start an Order</Link>

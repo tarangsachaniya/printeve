@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function CartSheet() {
   const { items, itemCount, subtotal, removeItem, selectionKey } = useCart();
+  const settings = useSiteSettings();
   const [removeKey, setRemoveKey] = React.useState<string | null>(null);
 
   return (
@@ -44,7 +46,9 @@ export function CartSheet() {
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
             <ShoppingCart className="size-10 text-text-muted" />
-            <p className="text-sm text-text-muted">Your cart is empty.</p>
+            <p className="text-sm text-text-muted">
+              {settings.empty_cart_title || "Your cart is empty."}
+            </p>
             <SheetClose asChild>
               <Button asChild variant="outline" size="sm">
                 <Link href="/products">Browse Products</Link>

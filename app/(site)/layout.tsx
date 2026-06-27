@@ -1,4 +1,5 @@
 import { getSiteConfig } from "@/lib/site-config";
+import { SiteSettingsProvider } from "@/lib/site-settings";
 import { api } from "@/lib/api";
 import type { Category } from "@/lib/types";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -15,10 +16,10 @@ export default async function SiteLayout({
   ]);
 
   return (
-    <>
+    <SiteSettingsProvider settings={config.settings}>
       <SiteHeader siteConfig={config} categories={categories} />
       <main className="flex-1">{children}</main>
       <SiteFooter siteConfig={config} categories={categories} />
-    </>
+    </SiteSettingsProvider>
   );
 }

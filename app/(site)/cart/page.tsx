@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, FileText } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +16,7 @@ const DELIVERY_FEE = 99;
 
 export default function CartPage() {
   const { items, subtotal, updateQuantity, removeItem, selectionKey } = useCart();
+  const settings = useSiteSettings();
   const [removeKey, setRemoveKey] = React.useState<string | null>(null);
 
   if (items.length === 0) {
@@ -23,9 +25,11 @@ export default function CartPage() {
         <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-surface">
           <ShoppingBag className="size-7 text-text-muted" />
         </div>
-        <h1 className="mt-5 text-2xl font-bold text-text">Your cart is empty</h1>
+        <h1 className="mt-5 text-2xl font-bold text-text">
+          {settings.empty_cart_title || "Your cart is empty"}
+        </h1>
         <p className="mt-2 text-sm text-text-muted">
-          Browse our products and start building your order.
+          {settings.empty_cart_subtitle || "Browse our products and start building your order."}
         </p>
         <Button asChild size="lg" className="mt-6">
           <Link href="/products">Browse Products</Link>
