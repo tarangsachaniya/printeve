@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Loader2, CheckCircle2, Circle, PackageX } from "lucide-react";
+import { ChevronLeft, Loader2, CheckCircle2, Circle, PackageX, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { Order, OrderStatus } from "@/lib/types";
 import { formatPrice, cn } from "@/lib/utils";
@@ -21,14 +22,21 @@ const TIMELINE_STEPS: { status: OrderStatus; label: string }[] = [
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const [order, setOrder] = React.useState<Order | null | undefined>(undefined);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     api
       .get<Order>(`/orders/${params.id}`)
       .then(setOrder)
       .catch((err) => {
-        if (err instanceof ApiError && err.status === 404) setOrder(null);
-        else setOrder(null);
+        if (err instanceof ApiError && err.status === 404) {
+          setOrder(null);
+        } else {
+          const msg = err instanceof ApiError ? err.message : "Unable to load order details.";
+          setError(msg);
+          toast.error(msg);
+          setOrder(null);
+        }
       });
   }, [params.id]);
 
@@ -44,11 +52,17 @@ export default function OrderDetailPage() {
     return (
       <Card className="flex flex-col items-center gap-3 p-10 text-center">
         <div className="flex size-14 items-center justify-center rounded-full bg-surface">
-          <PackageX className="size-6 text-text-muted" />
+          {error ? (
+            <AlertTriangle className="size-6 text-danger" />
+          ) : (
+            <PackageX className="size-6 text-text-muted" />
+          )}
         </div>
-        <h2 className="text-lg font-semibold text-text">Order not found</h2>
+        <h2 className="text-lg font-semibold text-text">
+          {error ? "Failed to load order" : "Order not found"}
+        </h2>
         <p className="max-w-sm text-sm text-text-muted">
-          We couldn&apos;t find an order with this ID. It may have been removed or the ID is incorrect.
+          {error ?? "We couldn't find an order with this ID. It may have been removed or the ID is incorrect."}
         </p>
         <Link href="/account/orders" className="mt-2 text-sm font-medium text-primary hover:underline">
           Back to Orders

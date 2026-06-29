@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,9 @@ function ResetPasswordForm() {
       setDone(true);
       setTimeout(() => router.push("/"), 2000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to reset password. The link may have expired.");
+      const msg = err instanceof ApiError ? err.message : "Unable to reset password. The link may have expired.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

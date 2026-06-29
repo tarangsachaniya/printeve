@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
@@ -31,6 +32,7 @@ export default function RootLayout({
             <CityProvider>
               {children}
               <CityPickerDialog />
+              <Toaster position="top-right" richColors closeButton />
             </CityProvider>
           </CartProvider>
         </AuthProvider>

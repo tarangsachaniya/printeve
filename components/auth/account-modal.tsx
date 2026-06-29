@@ -12,6 +12,7 @@ import {
   UserCircle,
   Settings,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { Address } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,10 @@ function ProfileTab() {
           phone: data.phone ?? "",
         });
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = err instanceof ApiError ? err.message : "Unable to load profile.";
+        toast.error(msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -128,7 +132,9 @@ function ProfileTab() {
       await api.patch("/account/profile", form);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to save changes. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to save changes. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -202,7 +208,11 @@ function AddressesTab() {
     api
       .get<Address[]>("/account/addresses")
       .then(setAddresses)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Unable to load addresses."))
+      .catch((err) => {
+        const msg = err instanceof ApiError ? err.message : "Unable to load addresses.";
+        setError(msg);
+        toast.error(msg);
+      })
       .finally(() => setLoading(false));
 
     // Fetch profile to pre-fill fullName & phone on new address
@@ -257,7 +267,9 @@ function AddressesTab() {
       }
       setOpen(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to save address. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to save address. Please try again.";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -269,7 +281,9 @@ function AddressesTab() {
       setAddresses((prev) => prev.filter((a) => a.id !== id));
       setDeleteId(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to delete address. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to delete address. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setDeleting(false);
     }
@@ -281,7 +295,9 @@ function AddressesTab() {
       await api.patch<Address>(`/account/addresses/${id}`, { isDefault: true });
       setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to update address. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to update address. Please try again.";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -449,7 +465,9 @@ function SettingsTab() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to update password. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to update password. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

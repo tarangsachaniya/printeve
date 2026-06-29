@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { Mail, Phone, MapPin, Clock, Loader2, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,9 @@ export default function ContactPage() {
       setSent(true);
       setForm({ name: "", email: "", subject: "", message: "" });
     } catch {
-      setError("Something went wrong. Please try again or email us directly.");
+      const msg = "Something went wrong. Please try again or email us directly.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

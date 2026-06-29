@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { Search, Loader2, PackageSearch, CheckCircle2, Circle } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -34,13 +35,18 @@ export default function TrackOrderPage() {
       const data = await api.get<Order>(`/orders/${orderId.trim()}`);
       setOrder(data);
     } catch (err) {
+      let msg: string;
       if (err instanceof ApiError && err.status === 404) {
-        setError("We couldn't find an order with that ID. Please double-check and try again.");
+        msg = "We couldn't find an order with that ID. Please double-check and try again.";
       } else if (err instanceof ApiError && err.status === 401) {
-        setError("Please sign in to track this order.");
+        msg = "Please sign in to track this order.";
+      } else if (err instanceof ApiError) {
+        msg = err.message;
       } else {
-        setError("Something went wrong. Please try again.");
+        msg = "Something went wrong. Please try again.";
       }
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

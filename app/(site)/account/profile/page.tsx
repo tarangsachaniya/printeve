@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,10 @@ export default function ProfilePage() {
           phone: data.phone ?? "",
         });
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = err instanceof ApiError ? err.message : "Unable to load profile.";
+        toast.error(msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,7 +52,9 @@ export default function ProfilePage() {
       await api.patch("/account/profile", form);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to save changes. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to save changes. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

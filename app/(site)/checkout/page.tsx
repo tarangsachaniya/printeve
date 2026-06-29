@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ShieldCheck, Loader2, Lock, ShoppingBag } from "lucide-react";
+import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useSiteSettings } from "@/lib/site-settings";
 import { formatPrice, cn } from "@/lib/utils";
@@ -99,15 +100,14 @@ export default function CheckoutPage() {
       clear();
       setPlaced(true);
     } catch (err) {
+      let msg: string;
       if (err instanceof ApiError) {
-        if (err.status === 401) {
-          setError("Please sign in to complete your order.");
-        } else {
-          setError(err.message);
-        }
+        msg = err.status === 401 ? "Please sign in to complete your order." : err.message;
       } else {
-        setError("Something went wrong. Please try again.");
+        msg = "Something went wrong. Please try again.";
       }
+      setError(msg);
+      toast.error(msg);
     } finally {
       setPaying(false);
     }

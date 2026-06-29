@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Package, ChevronRight, Loader2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { Package, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { api, ApiError } from "@/lib/api";
 import { useSiteSettings } from "@/lib/site-settings";
 import type { Order } from "@/lib/types";
 import { formatPrice, cn } from "@/lib/utils";
@@ -26,13 +27,19 @@ function formatStatus(status: string) {
 
 export default function OrdersPage() {
   const [orders, setOrders] = React.useState<Order[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const settings = useSiteSettings();
 
   React.useEffect(() => {
     api
       .get<Order[]>("/orders")
       .then(setOrders)
-      .catch(() => setOrders([]));
+      .catch((err) => {
+        const msg = err instanceof ApiError ? err.message : "Unable to load orders.";
+        setError(msg);
+        toast.error(msg);
+        setOrders([]);
+      });
   }, []);
 
   return (
@@ -44,6 +51,17 @@ export default function OrdersPage() {
           <div className="flex min-h-[40vh] items-center justify-center">
             <Loader2 className="size-6 animate-spin text-text-muted" />
           </div>
+        ) : error ? (
+          <Card className="flex flex-col items-center gap-3 p-10 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-danger/10">
+              <AlertTriangle className="size-6 text-danger" />
+            </div>
+            <h2 className="text-lg font-semibold text-text">Failed to load orders</h2>
+            <p className="max-w-sm text-sm text-text-muted">{error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-2">
+              Try Again
+            </Button>
+          </Card>
         ) : orders.length === 0 ? (
           <Card className="flex flex-col items-center gap-3 p-10 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-surface">

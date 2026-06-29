@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Plus, MapPin, Pencil, Trash2, Star, Loader2, LocateFixed } from "lucide-react";
+import { toast } from "sonner";
 import type { Address } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -48,7 +49,11 @@ export default function AddressesPage() {
     api
       .get<Address[]>("/account/addresses")
       .then(setAddresses)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Unable to load addresses."))
+      .catch((err) => {
+        const msg = err instanceof ApiError ? err.message : "Unable to load addresses.";
+        setError(msg);
+        toast.error(msg);
+      })
       .finally(() => setLoading(false));
 
     // Fetch profile to pre-fill fullName & phone on new address
@@ -125,7 +130,9 @@ export default function AddressesPage() {
       }
       setOpen(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to save address. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to save address. Please try again.";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -137,7 +144,9 @@ export default function AddressesPage() {
       setAddresses((prev) => prev.filter((a) => a.id !== id));
       setDeleteId(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to delete address. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to delete address. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setDeleting(false);
     }
@@ -149,7 +158,9 @@ export default function AddressesPage() {
       await api.patch<Address>(`/account/addresses/${id}`, { isDefault: true });
       setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to update address. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to update address. Please try again.";
+      setError(msg);
+      toast.error(msg);
     }
   }
 

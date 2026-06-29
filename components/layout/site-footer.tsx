@@ -101,7 +101,11 @@ export function SiteFooter({ siteConfig, categories = [] }: { siteConfig?: SiteC
               <ul className="mt-4 flex flex-col gap-2.5">
                 {categories.map((cat) => (
                   <li key={cat.id}>
-                    <Link href={`/products?category=${cat.slug}`} className="text-sm text-text-muted hover:text-primary transition-colors">
+                    <Link href={`/products?category=${cat.slug}`} className="flex items-center gap-2 text-sm text-text-muted hover:text-primary transition-colors">
+                      {cat.icon_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cat.icon_url} alt="" className="size-4 object-contain" />
+                      )}
                       {cat.title}
                     </Link>
                   </li>

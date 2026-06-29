@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Loader2, Mail, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,9 @@ function LoginView({ onSuccess, onForgotPassword }: { onSuccess: () => void; onF
       await login(email, password);
       onSuccess();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to sign in. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to sign in. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -128,7 +131,9 @@ function RegisterView({ onSuccess }: { onSuccess: () => void }) {
       await register({ fullName, email, phone, password });
       onSuccess();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to create account. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Unable to create account. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -177,7 +182,9 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
       await forgotPassword(email);
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      const msg = err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

@@ -29,11 +29,16 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const { addItem } = useCart();
   const { cityId } = useCity();
 
-  const [selectedOptions, setSelectedOptions] = React.useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
+  const [selectedOptions, setSelectedOptions] = React.useState<Record<string, string | string[]>>(() => {
+    const initial: Record<string, string | string[]> = {};
     for (const option of product.options) {
-      const defVal = defaultOptionValue(option);
-      if (defVal) initial[option.id] = defVal;
+      if (option.field_type === "multi_select") {
+        const defVal = defaultOptionValue(option);
+        initial[option.id] = defVal ? [defVal] : [];
+      } else {
+        const defVal = defaultOptionValue(option);
+        if (defVal) initial[option.id] = defVal;
+      }
     }
     return initial;
   });
@@ -70,12 +75,12 @@ export function ProductConfigurator({ product }: { product: Product }) {
   const [customUnit, setCustomUnit] = React.useState<DimensionUnit>("cm");
 
   const optionValueIds = React.useMemo(
-    () => Object.values(selectedOptions).filter(Boolean),
+    () => Object.values(selectedOptions).flatMap(v => Array.isArray(v) ? v : v ? [v] : []),
     [selectedOptions]
   );
 
   const paperSizeOption = product.options.find((o) => o.key === "paper_size");
-  const selectedSizeValueId = paperSizeOption ? selectedOptions[paperSizeOption.id] : undefined;
+  const selectedSizeValueId = paperSizeOption ? selectedOptions[paperSizeOption.id] as string | undefined : undefined;
   const selectedSizeValue = paperSizeOption?.values.find((v) => v.field_option_value_id === selectedSizeValueId);
   const showCustomDimensions = isCustomSize(selectedSizeValue?.value);
   const customDimensionsValid =
@@ -147,13 +152,19 @@ export function ProductConfigurator({ product }: { product: Product }) {
     const r = lookupPrice(quantity);
     if (!r) return null;
     const selected_options = product.options
-      .map((option) => {
-        const selectedValueId = selectedOptions[option.id];
-        const value = option.values.find((v) => v.field_option_value_id === selectedValueId);
-        if (!selectedValueId || !value) return null;
-        return { option_label: option.label, value_label: value.value, field_option_value_id: selectedValueId };
-      })
-      .filter(Boolean) as PriceLookupResult["selected_options"];
+      .flatMap((option) => {
+        const val = selectedOptions[option.id];
+        if (!val || (Array.isArray(val) && val.length === 0)) return [];
+        if (Array.isArray(val)) {
+          return val.map(v => {
+            const value = option.values.find(ov => ov.field_option_value_id === v);
+            return { option_label: option.label, value_label: value?.value ?? "", field_option_value_id: v };
+          });
+        }
+        const value = option.values.find(v => v.field_option_value_id === val);
+        if (!value) return [];
+        return [{ option_label: option.label, value_label: value.value, field_option_value_id: val }];
+      });
     return { quantity, price: r.price, max_completion_minutes: r.max_completion_minutes, selected_options };
   }, [lookupPrice, quantity, product.options, selectedOptions]);
 
@@ -178,14 +189,17 @@ export function ProductConfigurator({ product }: { product: Product }) {
   function handleAddToCart() {
     if (!priceLookup) return;
 
-    const selectedOpts = product.options.map((option) => {
-      const selectedValueId = selectedOptions[option.id];
-      const value = option.values.find((v) => v.field_option_value_id === selectedValueId);
-      return {
-        option_label: option.label,
-        value_label: value?.value ?? "",
-        field_option_value_id: selectedValueId ?? "",
-      };
+    const selectedOpts = product.options.flatMap((option): { option_label: string; value_label: string; field_option_value_id: string }[] => {
+      const val = selectedOptions[option.id];
+      if (!val || (Array.isArray(val) && val.length === 0)) return [];
+      if (Array.isArray(val)) {
+        return val.map(v => {
+          const value = option.values.find(ov => ov.field_option_value_id === v);
+          return { option_label: option.label, value_label: value?.value ?? "", field_option_value_id: v };
+        });
+      }
+      const value = option.values.find(v => v.field_option_value_id === val);
+      return [{ option_label: option.label, value_label: value?.value ?? "", field_option_value_id: val }];
     }).filter((o) => o.field_option_value_id);
 
     const unitPrice = priceLookup.price / quantity;
@@ -325,23 +339,54 @@ export function ProductConfigurator({ product }: { product: Product }) {
               {option.label}
               {option.is_required ? "" : " (Optional)"}
             </Label>
-            <Select
-              value={selectedOptions[option.id] ?? ""}
-              onValueChange={(v) =>
-                setSelectedOptions((prev) => ({ ...prev, [option.id]: v }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={`Select ${option.label.toLowerCase()}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {option.values.map((val) => (
-                  <SelectItem key={val.field_option_value_id} value={val.field_option_value_id}>
-                    {val.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {option.field_type === "multi_select" ? (
+              <div className="flex flex-wrap gap-2">
+                {option.values.map((val) => {
+                  const selected = ((selectedOptions[option.id] as string[]) ?? []).includes(val.field_option_value_id);
+                  return (
+                    <button
+                      key={val.field_option_value_id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOptions((prev) => {
+                          const current = (prev[option.id] as string[]) ?? [];
+                          const next = selected
+                            ? current.filter(v => v !== val.field_option_value_id)
+                            : [...current, val.field_option_value_id];
+                          return { ...prev, [option.id]: next };
+                        });
+                      }}
+                      className={cn(
+                        "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                        selected
+                          ? "bg-primary text-white border-primary"
+                          : "bg-surface border-border text-text hover:border-primary/50"
+                      )}
+                    >
+                      {val.value}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <Select
+                value={(selectedOptions[option.id] as string) ?? ""}
+                onValueChange={(v) =>
+                  setSelectedOptions((prev) => ({ ...prev, [option.id]: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select ${option.label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {option.values.map((val) => (
+                    <SelectItem key={val.field_option_value_id} value={val.field_option_value_id}>
+                      {val.value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         ))}
 

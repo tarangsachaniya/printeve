@@ -304,9 +304,15 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
                   <Link
                     key={category.slug}
                     href={`/products?category=${category.slug}`}
-                    className="rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface"
+                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-text hover:bg-surface"
                     onClick={() => setMobileOpen(false)}
                   >
+                    {category.icon_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={category.icon_url} alt="" className="size-5 object-contain" />
+                    ) : (
+                      <Layers className="size-4 text-primary" />
+                    )}
                     {category.title}
                   </Link>
                 ))}
