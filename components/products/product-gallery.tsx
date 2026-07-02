@@ -155,26 +155,6 @@ export function ProductGallery({
 
   if (media.length === 0) return null;
 
-  const goNext = React.useCallback(() => {
-    setActive((prev) => (prev + 1) % media.length);
-  }, [media.length]);
-
-  const goPrev = React.useCallback(() => {
-    setActive((prev) => (prev - 1 + media.length) % media.length);
-  }, [media.length]);
-
-  React.useEffect(() => {
-    if (media.length <= 1 || paused) return;
-    if (activeItem.type === "video") return;
-
-    const timer = setInterval(goNext, AUTO_SLIDE_INTERVAL);
-    return () => clearInterval(timer);
-  }, [media.length, paused, active, activeItem.type, goNext]);
-
-  const handleVideoEnded = React.useCallback(() => {
-    goNext();
-  }, [goNext]);
-
   return (
     <div className="flex flex-col gap-3">
       {/* ── Main viewer ── */}
@@ -235,36 +215,19 @@ export function ProductGallery({
         )}
 
         {media.length > 1 && (
-          <>
-            <button
-              onClick={(e) => { e.stopPropagation(); goPrev(); }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex size-9 items-center justify-center rounded-full bg-white/80 text-gray-800 shadow-md backdrop-blur-sm transition-opacity hover:bg-white md:opacity-0 md:group-hover:opacity-100"
-              aria-label="Previous"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); goNext(); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex size-9 items-center justify-center rounded-full bg-white/80 text-gray-800 shadow-md backdrop-blur-sm transition-opacity hover:bg-white md:opacity-0 md:group-hover:opacity-100"
-              aria-label="Next"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-
-            <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-              {media.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  className={cn(
-                    "size-2 rounded-full transition-all",
-                    active === i ? "bg-white scale-125 shadow" : "bg-white/50 hover:bg-white/80"
-                  )}
-                  aria-label={`Go to slide ${i + 1}`}
-                />
-              ))}
-            </div>
-          </>
+          <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+            {media.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => scrollTo(i)}
+                className={cn(
+                  "size-2 rounded-full transition-all",
+                  activeIndex === i ? "bg-white scale-125 shadow" : "bg-white/50 hover:bg-white/80"
+                )}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
         )}
       </div>
 
