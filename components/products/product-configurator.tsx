@@ -535,7 +535,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
       {/* CTA buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={!canAddToCart}>
+        <Button size="lg" className="flex-1 py-3 sm:py-0" onClick={handleAddToCart} disabled={!canAddToCart}>
           {added ? (
             <>
               <CheckCircle2 className="size-4" /> Added to Cart
@@ -549,7 +549,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
         <Button
           size="lg"
           variant="outline"
-          className="flex-1"
+          className="flex-1 py-3 sm:py-0"
           onClick={() => {
             handleAddToCart();
             router.push("/cart");
