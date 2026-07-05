@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Upload, Clock, CheckCircle2, FileText, Minus, Plus, ShoppingCart, Star, Info } from "lucide-react";
+import { Upload, Clock, CheckCircle2, FileText, ShoppingCart, Star, Info } from "lucide-react";
 import type { Product, PriceLookupResult, PricingMatrixRow, DimensionUnit } from "@/lib/types";
 import { defaultOptionValue } from "@/lib/pricing";
 import { useCart } from "@/lib/cart";
@@ -299,37 +299,23 @@ export function ProductConfigurator({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* Custom quantity input */}
-      <div>
-        <div className="flex h-11 w-full max-w-xs items-center rounded-md border border-border">
-          <button
-            className="flex h-full w-11 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40"
-            onClick={() => setQuantity((q) => Math.max(minQty, q - minQty))}
-            disabled={quantity <= minQty}
-            aria-label="Decrease quantity"
-          >
-            <Minus className="size-4" />
-          </button>
-          <input
-            type="number"
-            min={minQty}
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(minQty, Number(e.target.value) || minQty))}
-            className="h-full w-full flex-1 border-x border-border bg-background text-center text-sm font-medium text-text focus-ring"
-            aria-label="Quantity"
-          />
-          <button
-            className="flex h-full w-11 items-center justify-center text-text-muted transition-colors hover:text-primary"
-            onClick={() => setQuantity((q) => q + minQty)}
-            aria-label="Increase quantity"
-          >
-            <Plus className="size-4" />
-          </button>
+      {/* Quantity dropdown */}
+      {product.available_quantities.length > 0 && (
+        <div>
+          <Select value={String(quantity)} onValueChange={(v) => setQuantity(Number(v))}>
+            <SelectTrigger className="h-11 w-full max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {product.available_quantities.map((qty) => (
+                <SelectItem key={qty} value={String(qty)}>
+                  {qty.toLocaleString("en-IN")} pcs
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        {hasQuantities && (
-          <p className="mt-1.5 text-xs text-text-muted">Custom quantity in steps of {minQty.toLocaleString("en-IN")}</p>
-        )}
-      </div>
+      )}
 
       {/* Dynamic product options */}
       <div className="space-y-4">
