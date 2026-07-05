@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ShieldCheck, Loader2, Lock, ShoppingBag } from "lucide-react";
+import { Check, ShieldCheck, Loader2, Lock, ShoppingBag, Plus } from "lucide-react";
 import { toast } from "sonner";
+import type { Address } from "@/lib/types";
 import { useCart } from "@/lib/cart";
 import { useSiteSettings } from "@/lib/site-settings";
 import { formatPrice, cn } from "@/lib/utils";
@@ -13,6 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { IconChip } from "@/components/ui/icon-chip";
+import { selectableCardClasses } from "@/components/ui/selectable-card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const FREE_DELIVERY_THRESHOLD = 1000;
 const DELIVERY_FEE = 99;
@@ -56,16 +67,89 @@ export default function CheckoutPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [placed, setPlaced] = React.useState(false);
 
+  const [savedAddresses, setSavedAddresses] = React.useState<Address[] | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = React.useState<string | null>(null);
+  const [addAddressOpen, setAddAddressOpen] = React.useState(false);
+  const [newAddress, setNewAddress] = React.useState<Omit<Address, "id">>({
+    label: "Home",
+    fullName: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    isDefault: false,
+  });
+  const [savingAddress, setSavingAddress] = React.useState(false);
+
+  React.useEffect(() => {
+    api
+      .get<Address[]>("/account/addresses")
+      .then((data) => {
+        setSavedAddresses(data);
+        const def = data.find((a) => a.isDefault) ?? data[0];
+        if (def) setSelectedAddressId(def.id);
+      })
+      .catch(() => setSavedAddresses([]));
+  }, []);
+
+  const selectedAddress = savedAddresses?.find((a) => a.id === selectedAddressId) ?? null;
+
+  function updateNewAddress<K extends keyof Omit<Address, "id">>(key: K, value: Address[K]) {
+    setNewAddress((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSaveNewAddress(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingAddress(true);
+    setError(null);
+    try {
+      const created = await api.post<Address>("/account/addresses", newAddress);
+      setSavedAddresses((prev) => {
+        const next = created.isDefault ? (prev ?? []).map((a) => ({ ...a, isDefault: false })) : (prev ?? []);
+        return [...next, created];
+      });
+      setSelectedAddressId(created.id);
+      setAddAddressOpen(false);
+      setNewAddress({ label: "Home", fullName: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "", isDefault: false });
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Unable to save address. Please try again.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSavingAddress(false);
+    }
+  }
+
+  // The address actually used for review/payment: a selected saved address, else the manual form.
+  const reviewAddress: AddressForm | null = selectedAddress
+    ? {
+        fullName: selectedAddress.fullName,
+        phone: selectedAddress.phone,
+        line1: selectedAddress.line1,
+        line2: selectedAddress.line2 ?? "",
+        city: selectedAddress.city,
+        state: selectedAddress.state,
+        pincode: selectedAddress.pincode,
+      }
+    : (savedAddresses && savedAddresses.length > 0 ? null : address);
+
   const deliveryFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
   const total = subtotal + deliveryFee;
 
-  const addressValid =
-    address.fullName.trim() &&
-    address.phone.trim() &&
-    address.line1.trim() &&
-    address.city.trim() &&
-    address.state.trim() &&
-    address.pincode.trim();
+  const usingSavedAddresses = !!savedAddresses && savedAddresses.length > 0;
+
+  const addressValid = usingSavedAddresses
+    ? !!selectedAddressId
+    : !!(
+        address.fullName.trim() &&
+        address.phone.trim() &&
+        address.line1.trim() &&
+        address.city.trim() &&
+        address.state.trim() &&
+        address.pincode.trim()
+      );
 
   function updateAddress<K extends keyof AddressForm>(key: K, value: string) {
     setAddress((prev) => ({ ...prev, [key]: value }));
@@ -83,7 +167,7 @@ export default function CheckoutPage() {
       // For now we immediately confirm to simulate a successful payment.
       await api.post("/checkout/confirm", {
         razorpay_order_id: order?.id,
-        address,
+        address: reviewAddress,
         items: items.map((i) => ({
           productId: i.productId,
           name: i.name,
@@ -191,53 +275,94 @@ export default function CheckoutPage() {
           {step === "address" && (
             <Card className="p-5">
               <h2 className="text-base font-semibold text-text">Delivery Address</h2>
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <Label className="mb-1.5 block" htmlFor="fullName">Full Name</Label>
-                  <Input id="fullName" value={address.fullName} onChange={(e) => updateAddress("fullName", e.target.value)} placeholder="Jane Doe" />
+
+              {savedAddresses === null ? (
+                <div className="mt-6 flex justify-center">
+                  <Loader2 className="size-5 animate-spin text-text-muted" />
                 </div>
-                <div className="sm:col-span-2">
-                  <Label className="mb-1.5 block" htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" value={address.phone} onChange={(e) => updateAddress("phone", e.target.value)} placeholder="+91 98765 43210" />
+              ) : usingSavedAddresses ? (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {savedAddresses.map((a) => {
+                    const isSelected = a.id === selectedAddressId;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => setSelectedAddressId(a.id)}
+                        className={cn("flex flex-col gap-1 p-4 text-left", selectableCardClasses(isSelected))}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-text">{a.label}</span>
+                          {a.isDefault && <Badge variant="accent">Default</Badge>}
+                        </div>
+                        <p className="text-sm font-medium text-text">{a.fullName}</p>
+                        <p className="text-sm text-text-muted">
+                          {a.line1}
+                          {a.line2 ? `, ${a.line2}` : ""}, {a.city}, {a.state} {a.pincode}
+                        </p>
+                        <p className="text-sm text-text-muted">{a.phone}</p>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setAddAddressOpen(true)}
+                    className="flex min-h-[128px] flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border p-4 text-primary transition-colors hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <Plus className="size-5" />
+                    <span className="text-sm font-medium">Add New Address</span>
+                  </button>
                 </div>
-                <div className="sm:col-span-2">
-                  <Label className="mb-1.5 block" htmlFor="line1">Address Line 1</Label>
-                  <Input id="line1" value={address.line1} onChange={(e) => updateAddress("line1", e.target.value)} placeholder="Street address, building, etc." />
+              ) : (
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Label className="mb-1.5 block" htmlFor="fullName">Full Name</Label>
+                    <Input id="fullName" value={address.fullName} onChange={(e) => updateAddress("fullName", e.target.value)} placeholder="Jane Doe" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label className="mb-1.5 block" htmlFor="phone">Phone Number</Label>
+                    <Input id="phone" value={address.phone} onChange={(e) => updateAddress("phone", e.target.value)} placeholder="+91 98765 43210" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label className="mb-1.5 block" htmlFor="line1">Address Line 1</Label>
+                    <Input id="line1" value={address.line1} onChange={(e) => updateAddress("line1", e.target.value)} placeholder="Street address, building, etc." />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label className="mb-1.5 block" htmlFor="line2">Address Line 2 (optional)</Label>
+                    <Input id="line2" value={address.line2} onChange={(e) => updateAddress("line2", e.target.value)} placeholder="Apartment, suite, unit, etc." />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block" htmlFor="city">City</Label>
+                    <Input id="city" value={address.city} onChange={(e) => updateAddress("city", e.target.value)} placeholder="Mumbai" />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block" htmlFor="state">State</Label>
+                    <Input id="state" value={address.state} onChange={(e) => updateAddress("state", e.target.value)} placeholder="Maharashtra" />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block" htmlFor="pincode">Pincode</Label>
+                    <Input id="pincode" value={address.pincode} onChange={(e) => updateAddress("pincode", e.target.value)} placeholder="400001" />
+                  </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <Label className="mb-1.5 block" htmlFor="line2">Address Line 2 (optional)</Label>
-                  <Input id="line2" value={address.line2} onChange={(e) => updateAddress("line2", e.target.value)} placeholder="Apartment, suite, unit, etc." />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block" htmlFor="city">City</Label>
-                  <Input id="city" value={address.city} onChange={(e) => updateAddress("city", e.target.value)} placeholder="Mumbai" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block" htmlFor="state">State</Label>
-                  <Input id="state" value={address.state} onChange={(e) => updateAddress("state", e.target.value)} placeholder="Maharashtra" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block" htmlFor="pincode">Pincode</Label>
-                  <Input id="pincode" value={address.pincode} onChange={(e) => updateAddress("pincode", e.target.value)} placeholder="400001" />
-                </div>
-              </div>
+              )}
+
               <Button size="lg" className="mt-6" disabled={!addressValid} onClick={() => setStep("review")}>
                 Continue to Review
               </Button>
             </Card>
           )}
 
-          {step === "review" && (
+          {step === "review" && reviewAddress && (
             <Card className="p-5">
               <h2 className="text-base font-semibold text-text">Review Your Order</h2>
 
               <div className="mt-4 rounded-md border border-border p-4">
-                <p className="text-sm font-semibold text-text">{address.fullName}</p>
+                <p className="text-sm font-semibold text-text">{reviewAddress.fullName}</p>
                 <p className="mt-1 text-sm text-text-muted">
-                  {address.line1}
-                  {address.line2 ? `, ${address.line2}` : ""}, {address.city}, {address.state} {address.pincode}
+                  {reviewAddress.line1}
+                  {reviewAddress.line2 ? `, ${reviewAddress.line2}` : ""}, {reviewAddress.city}, {reviewAddress.state} {reviewAddress.pincode}
                 </p>
-                <p className="mt-1 text-sm text-text-muted">{address.phone}</p>
+                <p className="mt-1 text-sm text-text-muted">{reviewAddress.phone}</p>
                 <button onClick={() => setStep("address")} className="mt-2 text-xs font-medium text-primary hover:underline">
                   Edit address
                 </button>
@@ -278,9 +403,9 @@ export default function CheckoutPage() {
               </p>
 
               <div className="mt-4 flex items-center gap-3 rounded-md border border-border bg-surface p-4">
-                <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <IconChip>
                   <Lock className="size-5" />
-                </div>
+                </IconChip>
                 <div>
                   <p className="text-sm font-semibold text-text">Razorpay Secure Checkout</p>
                   <p className="text-xs text-text-muted">Cards, UPI, Netbanking & Wallets supported</p>
@@ -333,6 +458,54 @@ export default function CheckoutPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={addAddressOpen} onOpenChange={setAddAddressOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Address</DialogTitle>
+            <DialogDescription>Enter the delivery address details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveNewAddress} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="mb-1.5 block" htmlFor="newLabel">Label</Label>
+                <Input id="newLabel" required value={newAddress.label} onChange={(e) => updateNewAddress("label", e.target.value)} placeholder="Home / Office" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="newFullName">Full Name</Label>
+                <Input id="newFullName" required value={newAddress.fullName} onChange={(e) => updateNewAddress("fullName", e.target.value)} placeholder="Jane Doe" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="mb-1.5 block" htmlFor="newPhone">Phone Number</Label>
+                <Input id="newPhone" required value={newAddress.phone} onChange={(e) => updateNewAddress("phone", e.target.value)} placeholder="+91 98765 43210" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="mb-1.5 block" htmlFor="newLine1">Address Line 1</Label>
+                <Input id="newLine1" required value={newAddress.line1} onChange={(e) => updateNewAddress("line1", e.target.value)} placeholder="Street address" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="mb-1.5 block" htmlFor="newLine2">Address Line 2 (optional)</Label>
+                <Input id="newLine2" value={newAddress.line2 ?? ""} onChange={(e) => updateNewAddress("line2", e.target.value)} placeholder="Apartment, suite, etc." />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="newCity">City</Label>
+                <Input id="newCity" required value={newAddress.city} onChange={(e) => updateNewAddress("city", e.target.value)} placeholder="Mumbai" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="newState">State</Label>
+                <Input id="newState" required value={newAddress.state} onChange={(e) => updateNewAddress("state", e.target.value)} placeholder="Maharashtra" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="newPincode">Pincode</Label>
+                <Input id="newPincode" required value={newAddress.pincode} onChange={(e) => updateNewAddress("pincode", e.target.value)} placeholder="400001" />
+              </div>
+            </div>
+            <Button type="submit" size="lg" className="mt-2" disabled={savingAddress}>
+              {savingAddress ? <Loader2 className="size-4 animate-spin" /> : "Add Address"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

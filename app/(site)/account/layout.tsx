@@ -1,11 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Lock } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Loader2, Lock, Package, MapPin, Palette, User, Settings } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { IconChip } from "@/components/ui/icon-chip";
 import { AuthModal } from "@/components/auth/auth-modal";
+
+const NAV_ITEMS = [
+  { href: "/account/orders", label: "Orders", icon: Package },
+  { href: "/account/addresses", label: "Addresses", icon: MapPin },
+  { href: "/account/designs", label: "Saved Designs", icon: Palette },
+  { href: "/account/profile", label: "Profile", icon: User },
+  { href: "/account/settings", label: "Settings", icon: Settings },
+];
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<"loading" | "authed" | "guest">("loading");
@@ -49,5 +61,38 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     );
   }
 
-  return <>{children}</>;
+  return <AccountShell>{children}</AccountShell>;
+}
+
+function AccountShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="mx-auto max-w-5xl container-px py-10 lg:py-14">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
+        <nav className="h-fit overflow-hidden rounded-2xl border border-border bg-background divide-y divide-border">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                  isActive ? "bg-primary/5 text-primary" : "text-text hover:bg-surface"
+                )}
+              >
+                <IconChip size="sm" className={cn(!isActive && "bg-surface text-text-muted")}>
+                  <Icon className="size-4" />
+                </IconChip>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div>{children}</div>
+      </div>
+    </div>
+  );
 }

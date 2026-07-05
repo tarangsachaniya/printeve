@@ -241,7 +241,7 @@ export function ProductGallery({
               className={cn(
                 "relative size-16 shrink-0 overflow-hidden rounded-md border bg-surface transition-colors",
                 activeIndex === i
-                  ? "border-primary"
+                  ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"
               )}
               aria-label={item.type === "video" ? "Play video" : `View image ${i + 1}`}

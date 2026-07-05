@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = React.useState("");
@@ -93,24 +94,23 @@ export default function SettingsPage() {
           <CardDescription>Choose what updates you want to receive by email.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex max-w-md flex-col gap-4">
+          <div className="max-w-md overflow-hidden rounded-2xl border border-border divide-y divide-border">
             {[
               { key: "orderUpdates" as const, label: "Order updates", description: "Status changes, shipping and delivery notifications" },
               { key: "promotions" as const, label: "Promotions & offers", description: "Discounts, sales and seasonal offers" },
               { key: "productAnnouncements" as const, label: "Product announcements", description: "New products and feature updates" },
             ].map((item) => (
-              <label key={item.key} className="flex items-start justify-between gap-4 rounded-md border border-border p-3">
+              <div key={item.key} className="flex items-center justify-between gap-4 px-5 py-4">
                 <div>
                   <p className="text-sm font-medium text-text">{item.label}</p>
                   <p className="text-xs text-text-muted">{item.description}</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
                   checked={notifications[item.key]}
-                  onChange={() => toggleNotification(item.key)}
-                  className="mt-1 size-4 shrink-0 rounded border-border text-primary focus-ring"
+                  onCheckedChange={() => toggleNotification(item.key)}
+                  aria-label={item.label}
                 />
-              </label>
+              </div>
             ))}
           </div>
         </CardContent>

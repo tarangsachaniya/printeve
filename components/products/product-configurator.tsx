@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { TrustBadges } from "@/components/products/trust-badges";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { IconChip } from "@/components/ui/icon-chip";
+import { SelectableTile } from "@/components/ui/selectable-card";
 
 function formatCompletion(minutes: number | null): string | null {
   if (!minutes) return null;
@@ -272,18 +274,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
                 savingsPercent = Math.round((1 - unitPriceThis / unitPriceTier1) * 100);
               }
               return (
-                <button
-                  key={qty}
-                  onClick={() => setQuantity(qty)}
-                  className={cn(
-                    "relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all",
-                    isSelected
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-border bg-surface hover:border-primary/40"
-                  )}
-                >
+                <SelectableTile key={qty} selected={isSelected} onClick={() => setQuantity(qty)}>
                   {savingsPercent > 0 && (
-                    <span className="absolute -top-2.5 right-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <span className="absolute -top-2.5 right-2 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">
                       Save {savingsPercent}%
                     </span>
                   )}
@@ -292,7 +285,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
                   <span className="mt-1 text-sm font-semibold text-text">
                     {tierPrice ? formatPrice(tierPrice.price) : "—"}
                   </span>
-                </button>
+                </SelectableTile>
               );
             })}
           </div>
@@ -345,7 +338,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
                       className={cn(
                         "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
                         selected
-                          ? "bg-primary text-white border-primary"
+                          ? "bg-primary text-primary-foreground border-primary"
                           : "bg-surface border-border text-text hover:border-primary/50"
                       )}
                     >
@@ -404,18 +397,23 @@ export function ProductConfigurator({ product }: { product: Product }) {
                   aria-label="Custom height"
                 />
               </div>
-              <Select value={customUnit} onValueChange={(v) => handleCustomUnitChange(v as DimensionUnit)}>
-                <SelectTrigger className="w-20 shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DIMENSION_UNITS.map((u) => (
-                    <SelectItem key={u} value={u}>
-                      {u}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
+                {DIMENSION_UNITS.map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => handleCustomUnitChange(u)}
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium transition-colors",
+                      customUnit === u
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-surface text-text-muted hover:text-text"
+                    )}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
             </div>
             {!customDimensionsValid && (
               <p className="mt-1.5 text-xs text-danger">Enter the width and height for your custom size.</p>
@@ -452,7 +450,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
         </div>
         <label
           className={cn(
-            "flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors",
+            "flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-colors",
             dragOver
               ? "border-primary bg-primary/5"
               : "border-border bg-surface hover:border-primary/40"
@@ -559,13 +557,13 @@ export function ProductConfigurator({ product }: { product: Product }) {
           <div className="space-y-5">
             {guidelines.map((g, i) => (
               <div key={i} className="flex items-start gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <IconChip>
                   {g.icon_url ? (
                     <Image src={g.icon_url} alt={g.title} width={24} height={24} className="size-6 object-contain" />
                   ) : (
                     <span className="text-sm font-bold text-primary">{i + 1}</span>
                   )}
-                </div>
+                </IconChip>
                 <div className="min-w-0">
                   <h4 className="text-sm font-semibold text-text">{i + 1}. {g.title}</h4>
                   <p className="mt-0.5 text-sm text-text-muted">{g.description}</p>

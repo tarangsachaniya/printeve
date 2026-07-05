@@ -199,7 +199,7 @@ export default function AddressesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {addresses.map((address) => (
-            <Card key={address.id} className="flex flex-col gap-2 p-4">
+            <Card key={address.id} className="flex flex-col gap-2 rounded-2xl p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-text">{address.label}</span>

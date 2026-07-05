@@ -43,7 +43,7 @@ export default function OrdersPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-3xl container-px py-10 lg:py-14">
+    <div>
       <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">My Orders</h1>
 
       <div className="mt-8">
