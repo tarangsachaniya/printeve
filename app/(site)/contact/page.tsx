@@ -8,15 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-
-const contactDetails = [
-  { icon: Phone, label: "Phone", value: "+91 12345 67890", href: "tel:+911234567890" },
-  { icon: Mail, label: "Email", value: "support@printeve.com", href: "mailto:support@printeve.com" },
-  { icon: MapPin, label: "Address", value: "4th Floor, Print House, MG Road, Bengaluru, Karnataka 560001" },
-  { icon: Clock, label: "Business Hours", value: "Mon – Sat, 9:00 AM – 7:00 PM IST" },
-];
+import { useSiteSettings } from "@/lib/site-settings";
 
 export default function ContactPage() {
+  const settings = useSiteSettings();
+  const phone = settings.phone ?? "+91 12345 67890";
+  const email = settings.email ?? "support@printeve.com";
+  const address = settings.address ?? "4th Floor, Print House, MG Road, Bengaluru, Karnataka 560001";
+
+  const contactDetails = [
+    { icon: Phone, label: "Phone", value: phone, href: `tel:${phone.replace(/\s/g, "")}` },
+    { icon: Mail, label: "Email", value: email, href: `mailto:${email}` },
+    { icon: MapPin, label: "Address", value: address },
+    { icon: Clock, label: "Business Hours", value: "Mon – Sat, 9:00 AM – 7:00 PM IST" },
+  ];
+
   const [form, setForm] = React.useState({ name: "", email: "", subject: "", message: "" });
   const [loading, setLoading] = React.useState(false);
   const [sent, setSent] = React.useState(false);

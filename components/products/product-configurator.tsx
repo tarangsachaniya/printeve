@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { toast } from "sonner";
 import { Upload, Clock, CheckCircle2, FileText, ShoppingCart, Star, Info } from "lucide-react";
 import type { Product, PriceLookupResult, PricingMatrixRow, DimensionUnit } from "@/lib/types";
 import { defaultOptionValue } from "@/lib/pricing";
@@ -120,6 +121,19 @@ export function ProductConfigurator({ product }: { product: Product }) {
     [optionValueIds, pricingRelevantIds]
   );
 
+  // Quantities that actually have a pricing_matrix row for the CURRENT option
+  // combination — the correct search space for the floor lookup below. Distinct
+  // from `tiers` (only used for the 3 quantity tiles) and from
+  // product.available_quantities (a global union across every combo).
+  const candidateQuantities = React.useMemo(() => {
+    const prefix = selectedPricingKey + "#";
+    const qs: number[] = [];
+    for (const key of priceIndex.keys()) {
+      if (key.startsWith(prefix)) qs.push(Number(key.slice(prefix.length)));
+    }
+    return qs.sort((a, b) => a - b);
+  }, [priceIndex, selectedPricingKey]);
+
   // Exact tier match, else interpolate from the highest tier <= qty (per-unit price).
   const lookupPrice = React.useCallback(
     (qty: number): { price: number; max_completion_minutes: number | null } | null => {
@@ -127,7 +141,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
       const exact = priceIndex.get(selectedPricingKey + "#" + qty);
       if (exact) return { price: exact.price, max_completion_minutes: exact.max_completion_minutes };
       let floor: PricingMatrixRow | null = null;
-      for (const t of tiers) {
+      for (const t of candidateQuantities) {
         if (t > qty) break;
         const row = priceIndex.get(selectedPricingKey + "#" + t);
         if (row) floor = row;
@@ -136,7 +150,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
       const price = Math.round((floor.price / floor.quantity) * qty * 100) / 100;
       return { price, max_completion_minutes: floor.max_completion_minutes };
     },
-    [priceIndex, selectedPricingKey, tiers]
+    [priceIndex, selectedPricingKey, candidateQuantities]
   );
 
   const tierPrices = React.useMemo(() => {
@@ -225,6 +239,13 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
+
+    toast.success("Added to cart", {
+      action: {
+        label: "View Cart",
+        onClick: () => router.push("/cart"),
+      },
+    });
   }
 
   const completion = formatCompletion(priceLookup?.max_completion_minutes ?? null);
