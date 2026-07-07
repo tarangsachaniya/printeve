@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { Package, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { api, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { getOrders } from "@/lib/orders";
 import { useSiteSettings } from "@/lib/site-settings";
 import type { Order } from "@/lib/types";
 import { formatPrice, cn } from "@/lib/utils";
@@ -31,9 +32,8 @@ export default function OrdersPage() {
   const settings = useSiteSettings();
 
   React.useEffect(() => {
-    api
-      .get<Order[]>("/orders")
-      .then(setOrders)
+    getOrders()
+      .then((res) => setOrders(res.items))
       .catch((err) => {
         const msg = err instanceof ApiError ? err.message : "Unable to load orders.";
         setError(msg);

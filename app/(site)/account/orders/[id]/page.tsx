@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronLeft, Loader2, CheckCircle2, Circle, PackageX, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { api, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { getOrderById } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/lib/types";
 import { formatPrice, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -25,8 +26,7 @@ export default function OrderDetailPage() {
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    api
-      .get<Order>(`/orders/${params.id}`)
+    getOrderById(params.id)
       .then(setOrder)
       .catch((err) => {
         if (err instanceof ApiError && err.status === 404) {

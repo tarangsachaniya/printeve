@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
+import { BuyNowProvider } from "@/lib/buy-now";
 import { CityProvider } from "@/lib/city";
 import { CityPickerDialog } from "@/components/layout/city-picker-dialog";
 
@@ -29,11 +30,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-text">
         <AuthProvider>
           <CartProvider>
-            <CityProvider>
-              {children}
-              <CityPickerDialog />
-              <Toaster position="top-right" richColors closeButton />
-            </CityProvider>
+            <BuyNowProvider>
+              <CityProvider>
+                {children}
+                <CityPickerDialog />
+                <Toaster position="top-right" richColors closeButton />
+              </CityProvider>
+            </BuyNowProvider>
           </CartProvider>
         </AuthProvider>
       </body>

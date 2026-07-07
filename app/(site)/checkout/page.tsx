@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ShieldCheck, Loader2, Lock, ShoppingBag, Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { Address } from "@/lib/types";
+import type { Address, CartItem } from "@/lib/types";
 import { useCart } from "@/lib/cart";
+import { useBuyNow } from "@/lib/buy-now";
+import { createOrder, type CreateOrderPayload } from "@/lib/orders";
 import { useSiteSettings } from "@/lib/site-settings";
 import { formatPrice, cn } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
@@ -56,10 +58,16 @@ const EMPTY_ADDRESS: AddressForm = {
   pincode: "",
 };
 
-export default function CheckoutPage() {
+function CheckoutForm() {
   const router = useRouter();
-  const { items, subtotal, clear } = useCart();
+  const searchParams = useSearchParams();
+  const isBuyNow = searchParams.get("mode") === "buy-now";
+  const cart = useCart();
+  const buyNow = useBuyNow();
   const settings = useSiteSettings();
+
+  const items: CartItem[] = isBuyNow ? (buyNow.item ? [buyNow.item] : []) : cart.items;
+  const subtotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
 
   const [step, setStep] = React.useState<Step>("address");
   const [address, setAddress] = React.useState<AddressForm>(EMPTY_ADDRESS);
@@ -155,33 +163,49 @@ export default function CheckoutPage() {
     setAddress((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function ensureAddressId(): Promise<string> {
+    if (selectedAddressId) return selectedAddressId;
+    const created = await api.post<Address>("/account/addresses", {
+      label: "Home",
+      fullName: address.fullName,
+      phone: address.phone,
+      line1: address.line1,
+      line2: address.line2,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      isDefault: true,
+    });
+    setSelectedAddressId(created.id);
+    setSavedAddresses((prev) => [...(prev ?? []), created]);
+    return created.id;
+  }
+
   async function handlePay() {
     setPaying(true);
     setError(null);
     try {
-      const order = await api.post<{ id: string; amount: number; currency: string }>("/checkout/initiate", {
+      // Razorpay-ready: in production this would open Razorpay Checkout with the returned order id.
+      // For now we immediately confirm to simulate a successful payment.
+      await api.post<{ id: string; amount: number; currency: string }>("/checkout/initiate", {
         amount: total,
       });
 
-      // Razorpay-ready: in production this would open Razorpay Checkout with `order.id`.
-      // For now we immediately confirm to simulate a successful payment.
-      await api.post("/checkout/confirm", {
-        razorpay_order_id: order?.id,
-        address: reviewAddress,
+      const addressId = await ensureAddressId();
+
+      const payload: CreateOrderPayload = {
         items: items.map((i) => ({
           productId: i.productId,
-          name: i.name,
           quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          totalPrice: i.totalPrice,
-          selection: i.selection,
+          optionValueIds: i.selection.options.map((o) => o.field_option_value_id),
         })),
-        subtotal,
+        addressId,
         deliveryFee,
-        total,
-      });
+      };
 
-      clear();
+      await createOrder(payload);
+
+      if (isBuyNow) buyNow.clear(); else cart.clear();
       setPlaced(true);
     } catch (err) {
       let msg: string;
@@ -226,10 +250,12 @@ export default function CheckoutPage() {
           <ShoppingBag className="size-7 text-text-muted" />
         </div>
         <h1 className="mt-5 text-2xl font-bold text-text">
-          {settings.empty_cart_title || "Your cart is empty"}
+          {isBuyNow ? "No item selected" : settings.empty_cart_title || "Your cart is empty"}
         </h1>
         <p className="mt-2 text-sm text-text-muted">
-          {settings.empty_cart_subtitle || "Add some products before checking out."}
+          {isBuyNow
+            ? "Choose a product to buy it directly."
+            : settings.empty_cart_subtitle || "Add some products before checking out."}
         </p>
         <Button asChild size="lg" className="mt-6">
           <Link href="/products">Browse Products</Link>
@@ -452,9 +478,11 @@ export default function CheckoutPage() {
                 <dd className="text-text">{formatPrice(total)}</dd>
               </div>
             </dl>
-            <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => router.push("/cart")}>
-              Back to Cart
-            </Button>
+            {!isBuyNow && (
+              <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => router.push("/cart")}>
+                Back to Cart
+              </Button>
+            )}
           </Card>
         </div>
       </div>
@@ -507,5 +535,13 @@ export default function CheckoutPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <CheckoutForm />
+    </React.Suspense>
   );
 }

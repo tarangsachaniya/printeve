@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Upload, Clock, CheckCircle2, FileText, ShoppingCart, Star, Info } from "lucide-react";
-import type { Product, PriceLookupResult, PricingMatrixRow, DimensionUnit } from "@/lib/types";
+import type { Product, PriceLookupResult, PricingMatrixRow, DimensionUnit, CartItem } from "@/lib/types";
 import { defaultOptionValue } from "@/lib/pricing";
 import { useCart } from "@/lib/cart";
+import { useBuyNow } from "@/lib/buy-now";
 import { useCity } from "@/lib/city";
 import { formatPrice, cn } from "@/lib/utils";
 import { convertDimension, isCustomSize, DIMENSION_UNITS } from "@/lib/units";
@@ -30,6 +31,7 @@ function formatCompletion(minutes: number | null): string | null {
 export function ProductConfigurator({ product }: { product: Product }) {
   const router = useRouter();
   const { addItem } = useCart();
+  const { setItem: setBuyNowItem } = useBuyNow();
   const { cityId } = useCity();
 
   const [selectedOptions, setSelectedOptions] = React.useState<Record<string, string | string[]>>(() => {
@@ -202,8 +204,8 @@ export function ProductConfigurator({ product }: { product: Product }) {
     setCustomUnit(nextUnit);
   }
 
-  function handleAddToCart() {
-    if (!priceLookup) return;
+  function buildCartItem(): CartItem | null {
+    if (!priceLookup) return null;
 
     const selectedOpts = product.options.flatMap((option): { option_label: string; value_label: string; field_option_value_id: string }[] => {
       const val = selectedOptions[option.id];
@@ -220,7 +222,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
     const unitPrice = priceLookup.price / quantity;
 
-    addItem({
+    return {
       productId: product.id,
       name: product.name,
       image: product.images?.[0] ?? null,
@@ -235,7 +237,14 @@ export function ProductConfigurator({ product }: { product: Product }) {
           : undefined,
       },
       artworkFileName: file?.name,
-    });
+    };
+  }
+
+  function handleAddToCart() {
+    const item = buildCartItem();
+    if (!item) return;
+
+    addItem(item);
 
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
@@ -246,6 +255,14 @@ export function ProductConfigurator({ product }: { product: Product }) {
         onClick: () => router.push("/cart"),
       },
     });
+  }
+
+  function handleBuyNow() {
+    const item = buildCartItem();
+    if (!item) return;
+
+    setBuyNowItem(item);
+    router.push("/checkout?mode=buy-now");
   }
 
   const completion = formatCompletion(priceLookup?.max_completion_minutes ?? null);
@@ -555,10 +572,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
           size="lg"
           variant="outline"
           className="flex-1 py-3 sm:py-0"
-          onClick={() => {
-            handleAddToCart();
-            router.push("/cart");
-          }}
+          onClick={handleBuyNow}
           disabled={!canAddToCart}
         >
           Buy Now

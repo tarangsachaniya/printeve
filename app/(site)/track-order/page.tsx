@@ -3,7 +3,8 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { Search, Loader2, PackageSearch, CheckCircle2, Circle } from "lucide-react";
-import { api, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { getOrderById } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/lib/types";
 import { formatPrice, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -32,7 +33,7 @@ export default function TrackOrderPage() {
     setError(null);
     setOrder(null);
     try {
-      const data = await api.get<Order>(`/orders/${orderId.trim()}`);
+      const data = await getOrderById(orderId.trim());
       setOrder(data);
     } catch (err) {
       let msg: string;
