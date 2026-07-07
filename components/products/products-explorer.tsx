@@ -88,7 +88,7 @@ export function ProductsExplorer({ products }: { products: Product[] }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products..."
-            className="pl-9"
+            className="h-10 pl-9 pr-3"
             type="search"
           />
         </form>

@@ -5,18 +5,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, FileText } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { useSiteSettings } from "@/lib/site-settings";
+import { useCity } from "@/lib/city";
+import { useSiteSettings, usePricingConfig } from "@/lib/site-settings";
+import { computeOrderBill } from "@/lib/pricing";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-const FREE_DELIVERY_THRESHOLD = 1000;
-const DELIVERY_FEE = 99;
-
 export default function CartPage() {
   const { items, subtotal, updateQuantity, removeItem, selectionKey } = useCart();
   const settings = useSiteSettings();
+  const pricingConfig = usePricingConfig();
+  const { cities, cityId } = useCity();
   const [removeKey, setRemoveKey] = React.useState<string | null>(null);
 
   if (items.length === 0) {
@@ -38,8 +39,8 @@ export default function CartPage() {
     );
   }
 
-  const deliveryFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const total = subtotal + deliveryFee;
+  const cityDeliveryFee = cities.find((c) => c.id === cityId)?.price ?? 0;
+  const bill = computeOrderBill(subtotal, pricingConfig, cityDeliveryFee);
 
   return (
     <div className="mx-auto max-w-7xl container-px py-10 lg:py-14">
@@ -123,29 +124,69 @@ export default function CartPage() {
           <Card className="sticky top-24 p-5">
             <h2 className="text-base font-semibold text-text">Order Summary</h2>
             <dl className="mt-4 flex flex-col gap-2 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Service</p>
               <div className="flex justify-between">
                 <dt className="text-text-muted">Subtotal</dt>
-                <dd className="text-text">{formatPrice(subtotal)}</dd>
+                <dd className="text-text">{formatPrice(bill.subtotal)}</dd>
               </div>
-              <div className="flex justify-between">
+              {pricingConfig.cgst_percent > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-text-muted">CGST ({pricingConfig.cgst_percent}%)</dt>
+                  <dd className="text-text">{formatPrice(bill.cgstAmount)}</dd>
+                </div>
+              )}
+              {pricingConfig.sgst_percent > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-text-muted">SGST ({pricingConfig.sgst_percent}%)</dt>
+                  <dd className="text-text">{formatPrice(bill.sgstAmount)}</dd>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-border pt-2 font-medium">
+                <dt className="text-text">Service Total</dt>
+                <dd className="text-text">{formatPrice(bill.serviceTotal)}</dd>
+              </div>
+
+              {bill.platformFee > 0 && (
+                <>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Platform Fee</p>
+                  <div className="flex justify-between border-t border-border pt-2 font-medium">
+                    <dt className="text-text">Platform Fee Total</dt>
+                    <dd className="text-text">{formatPrice(bill.platformFee)}</dd>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-between pt-2">
                 <dt className="text-text-muted">Delivery</dt>
-                <dd className="text-text">{deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}</dd>
+                <dd className="text-text">{bill.deliveryFee === 0 ? "Free" : formatPrice(bill.deliveryFee)}</dd>
               </div>
-              {deliveryFee > 0 && (
+              {bill.deliveryFee > 0 && bill.amountToFreeDelivery > 0 && (
                 <p className="text-xs text-primary">
-                  Add {formatPrice(FREE_DELIVERY_THRESHOLD - subtotal)} more for free delivery
+                  Add {formatPrice(bill.amountToFreeDelivery)} more for free delivery
                 </p>
               )}
+
               <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
                 <dt className="text-text">Total</dt>
-                <dd className="text-text">{formatPrice(total)}</dd>
+                <dd className="text-text">{formatPrice(bill.grandTotal)}</dd>
               </div>
             </dl>
-            <Button asChild size="lg" className="mt-5 w-full">
-              <Link href="/checkout">
+            {!bill.meetsMinOrder && (
+              <p className="mt-3 rounded-md border border-danger/30 bg-danger/5 p-2.5 text-xs text-danger">
+                Minimum order amount is {formatPrice(pricingConfig.min_order_price)}. Add {formatPrice(pricingConfig.min_order_price - subtotal)} more to checkout.
+              </p>
+            )}
+            {bill.meetsMinOrder ? (
+              <Button asChild size="lg" className="mt-5 w-full">
+                <Link href="/checkout">
+                  Proceed to Checkout <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button size="lg" className="mt-5 w-full" disabled>
                 Proceed to Checkout <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm" className="mt-2 w-full">
               <Link href="/products">Continue Shopping</Link>
             </Button>

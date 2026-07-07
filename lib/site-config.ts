@@ -48,12 +48,31 @@ export interface CmsFooterGroup {
   links: { id: string; label: string; href: string; sort_order: number }[]
 }
 
+export interface PricingConfig {
+  cgst_percent: number
+  sgst_percent: number
+  min_order_price: number
+  free_delivery_min_price: number
+  platform_fee_type: 'percentage' | 'flat'
+  platform_fee_value: number
+}
+
+const DEFAULT_PRICING_CONFIG: PricingConfig = {
+  cgst_percent: 0,
+  sgst_percent: 0,
+  min_order_price: 0,
+  free_delivery_min_price: 0,
+  platform_fee_type: 'flat',
+  platform_fee_value: 0,
+}
+
 export interface SiteConfig {
   version: string
   settings: Record<string, string | null>
   navbar: Record<string, CmsNavItem[]>
   footer: CmsFooterGroup[]
   pages: Record<string, CmsPage>
+  pricingConfig: PricingConfig
 }
 
 let fallbackConfig: SiteConfig | null = null
@@ -69,7 +88,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     return data
   } catch {
     if (fallbackConfig) return fallbackConfig
-    return { version: '0', settings: {}, navbar: {}, footer: [], pages: {} }
+    return { version: '0', settings: {}, navbar: {}, footer: [], pages: {}, pricingConfig: DEFAULT_PRICING_CONFIG }
   }
 }
 

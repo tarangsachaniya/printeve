@@ -7,9 +7,12 @@ import { Check, ShieldCheck, Loader2, Lock, ShoppingBag, Plus } from "lucide-rea
 import { toast } from "sonner";
 import type { Address, CartItem } from "@/lib/types";
 import { useCart } from "@/lib/cart";
+import { useCity } from "@/lib/city";
 import { useBuyNow } from "@/lib/buy-now";
 import { createOrder, type CreateOrderPayload } from "@/lib/orders";
-import { useSiteSettings } from "@/lib/site-settings";
+import { validateCoupon, type CouponValidationResult } from "@/lib/coupons";
+import { useSiteSettings, usePricingConfig } from "@/lib/site-settings";
+import { computeOrderBill } from "@/lib/pricing";
 import { formatPrice, cn } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -26,9 +29,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
-const FREE_DELIVERY_THRESHOLD = 1000;
-const DELIVERY_FEE = 99;
 
 type Step = "address" | "review" | "payment";
 
@@ -65,6 +65,8 @@ function CheckoutForm() {
   const cart = useCart();
   const buyNow = useBuyNow();
   const settings = useSiteSettings();
+  const pricingConfig = usePricingConfig();
+  const { cities, cityId } = useCity();
 
   const items: CartItem[] = isBuyNow ? (buyNow.item ? [buyNow.item] : []) : cart.items;
   const subtotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
@@ -74,6 +76,11 @@ function CheckoutForm() {
   const [paying, setPaying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [placed, setPlaced] = React.useState(false);
+
+  const [couponInput, setCouponInput] = React.useState("");
+  const [appliedCoupon, setAppliedCoupon] = React.useState<CouponValidationResult | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = React.useState(false);
+  const [couponError, setCouponError] = React.useState<string | null>(null);
 
   const [savedAddresses, setSavedAddresses] = React.useState<Address[] | null>(null);
   const [selectedAddressId, setSelectedAddressId] = React.useState<string | null>(null);
@@ -143,8 +150,11 @@ function CheckoutForm() {
       }
     : (savedAddresses && savedAddresses.length > 0 ? null : address);
 
-  const deliveryFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const total = subtotal + deliveryFee;
+  const discount = appliedCoupon?.discountAmount ?? 0;
+  const netSubtotal = Math.max(0, subtotal - discount);
+  const cityDeliveryFee = cities.find((c) => c.id === cityId)?.price ?? 0;
+  const bill = computeOrderBill(netSubtotal, pricingConfig, cityDeliveryFee);
+  const total = bill.grandTotal;
 
   const usingSavedAddresses = !!savedAddresses && savedAddresses.length > 0;
 
@@ -181,6 +191,24 @@ function CheckoutForm() {
     return created.id;
   }
 
+  async function handleApplyCoupon() {
+    if (!couponInput.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError(null);
+    try {
+      const result = await validateCoupon(couponInput, subtotal);
+      setAppliedCoupon(result);
+      toast.success(`Coupon applied! Saved ${formatPrice(result.discountAmount)}`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Invalid coupon.";
+      setCouponError(msg);
+      setAppliedCoupon(null);
+      toast.error(msg);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  }
+
   async function handlePay() {
     setPaying(true);
     setError(null);
@@ -200,7 +228,7 @@ function CheckoutForm() {
           optionValueIds: i.selection.options.map((o) => o.field_option_value_id),
         })),
         addressId,
-        deliveryFee,
+        couponCode: appliedCoupon?.coupon.code,
       };
 
       await createOrder(payload);
@@ -256,6 +284,22 @@ function CheckoutForm() {
           {isBuyNow
             ? "Choose a product to buy it directly."
             : settings.empty_cart_subtitle || "Add some products before checking out."}
+        </p>
+        <Button asChild size="lg" className="mt-6">
+          <Link href="/products">Browse Products</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const meetsMinOrder = subtotal >= pricingConfig.min_order_price;
+
+  if (!meetsMinOrder) {
+    return (
+      <div className="mx-auto max-w-3xl container-px py-20 text-center">
+        <h1 className="text-2xl font-bold text-text">Add a bit more to checkout</h1>
+        <p className="mt-2 text-sm text-text-muted">
+          Minimum order amount is {formatPrice(pricingConfig.min_order_price)}. Add {formatPrice(pricingConfig.min_order_price - subtotal)} more to proceed.
         </p>
         <Button asChild size="lg" className="mt-6">
           <Link href="/products">Browse Products</Link>
@@ -415,6 +459,41 @@ function CheckoutForm() {
                 ))}
               </div>
 
+              <div className="mt-4 border-t border-border pt-4">
+                <Label className="mb-1.5 block" htmlFor="coupon">Have a coupon?</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="coupon"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    placeholder="Enter code"
+                    disabled={!!appliedCoupon}
+                  />
+                  {appliedCoupon ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setAppliedCoupon(null);
+                        setCouponInput("");
+                        setCouponError(null);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  ) : (
+                    <Button onClick={handleApplyCoupon} disabled={validatingCoupon || !couponInput.trim()}>
+                      {validatingCoupon ? <Loader2 className="size-4 animate-spin" /> : "Apply"}
+                    </Button>
+                  )}
+                </div>
+                {couponError && <p className="mt-2 text-xs text-danger">{couponError}</p>}
+                {appliedCoupon && (
+                  <p className="mt-2 text-xs font-medium text-primary">
+                    &ldquo;{appliedCoupon.coupon.code}&rdquo; applied — you saved {formatPrice(appliedCoupon.discountAmount)}
+                  </p>
+                )}
+              </div>
+
               <Button size="lg" className="mt-6" onClick={() => setStep("payment")}>
                 Continue to Payment
               </Button>
@@ -465,13 +544,47 @@ function CheckoutForm() {
             <h2 className="text-base font-semibold text-text">Order Summary</h2>
             <p className="mt-1 text-xs text-text-muted">{items.length} item{items.length > 1 ? "s" : ""}</p>
             <dl className="mt-4 flex flex-col gap-2 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Service</p>
               <div className="flex justify-between">
                 <dt className="text-text-muted">Subtotal</dt>
                 <dd className="text-text">{formatPrice(subtotal)}</dd>
               </div>
-              <div className="flex justify-between">
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-primary">Discount</dt>
+                  <dd className="text-primary">-{formatPrice(discount)}</dd>
+                </div>
+              )}
+              {pricingConfig.cgst_percent > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-text-muted">CGST ({pricingConfig.cgst_percent}%)</dt>
+                  <dd className="text-text">{formatPrice(bill.cgstAmount)}</dd>
+                </div>
+              )}
+              {pricingConfig.sgst_percent > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-text-muted">SGST ({pricingConfig.sgst_percent}%)</dt>
+                  <dd className="text-text">{formatPrice(bill.sgstAmount)}</dd>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-border pt-2 font-medium">
+                <dt className="text-text">Service Total</dt>
+                <dd className="text-text">{formatPrice(bill.serviceTotal)}</dd>
+              </div>
+
+              {bill.platformFee > 0 && (
+                <>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Platform Fee</p>
+                  <div className="flex justify-between border-t border-border pt-2 font-medium">
+                    <dt className="text-text">Platform Fee Total</dt>
+                    <dd className="text-text">{formatPrice(bill.platformFee)}</dd>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-between pt-2">
                 <dt className="text-text-muted">Delivery</dt>
-                <dd className="text-text">{deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}</dd>
+                <dd className="text-text">{bill.deliveryFee === 0 ? "Free" : formatPrice(bill.deliveryFee)}</dd>
               </div>
               <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
                 <dt className="text-text">Total</dt>

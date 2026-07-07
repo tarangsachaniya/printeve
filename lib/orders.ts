@@ -10,7 +10,7 @@ export interface CreateOrderItemInput {
 export interface CreateOrderPayload {
   items: CreateOrderItemInput[];
   addressId?: string;
-  deliveryFee?: number;
+  couponCode?: string;
 }
 
 export interface OrdersListResult {
@@ -26,6 +26,7 @@ interface RawOrder {
   subtotal: number | string;
   delivery_fee: number | string;
   platform_fee: number | string;
+  discount_amount: number | string;
   total: number | string;
   payment_status: OrderPaymentStatus;
   created_at: string;
@@ -40,6 +41,7 @@ function toOrder(raw: RawOrder): Order {
     subtotal: Number(raw.subtotal),
     deliveryFee: Number(raw.delivery_fee),
     platformFee: Number(raw.platform_fee),
+    discountAmount: Number(raw.discount_amount),
     total: Number(raw.total),
     paymentStatus: raw.payment_status,
     createdAt: raw.created_at,

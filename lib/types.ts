@@ -80,6 +80,8 @@ export interface City {
   id: string;
   name: string;
   state: string;
+  /** Flat delivery fee for this city, waived above the free-delivery threshold. */
+  price: number | null;
 }
 
 export type OrderStatus =
@@ -100,6 +102,7 @@ export interface Order {
   subtotal: number;
   deliveryFee: number;
   platformFee: number;
+  discountAmount: number;
   total: number;
   paymentStatus: OrderPaymentStatus;
   createdAt: string;
