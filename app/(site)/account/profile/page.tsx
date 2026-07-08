@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { isValidEmail, isValidIndianPhone } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +47,18 @@ export default function ProfilePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isValidEmail(form.email)) {
+      const msg = "Please enter a valid email address.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+    if (!isValidIndianPhone(form.phone)) {
+      const msg = "Please enter a valid 10-digit mobile number.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {

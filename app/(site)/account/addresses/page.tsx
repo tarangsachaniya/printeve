@@ -5,6 +5,7 @@ import { Plus, MapPin, Pencil, Trash2, Star, Loader2, LocateFixed } from "lucide
 import { toast } from "sonner";
 import type { Address } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
+import { isValidIndianPhone } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,12 @@ export default function AddressesPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!isValidIndianPhone(form.phone)) {
+      const msg = "Please enter a valid 10-digit mobile number.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setError(null);
     try {
       if (editingId) {

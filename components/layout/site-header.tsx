@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { AccountModal } from "@/components/auth/account-modal";
+import { SearchModal } from "./search-modal";
 import { CartSheet } from "./cart-sheet";
 import { cn } from "@/lib/utils";
 import type { SiteConfig } from "@/lib/site-config";
@@ -32,6 +33,7 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
   const [megaOpen, setMegaOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [authOpen, setAuthOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [accountOpen, setAccountOpen] = React.useState(false);
   const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
@@ -57,12 +59,6 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const q = new FormData(e.currentTarget).get("q");
-    router.push(`/products${q ? `?search=${encodeURIComponent(String(q))}` : ""}`);
-  }
 
   return (
     <header
@@ -182,21 +178,16 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
           ))}
         </nav>
 
-        {/* Search */}
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md ml-auto">
-          <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-            <input
-              name="q"
-              type="search"
-              placeholder="Search products..."
-              className="h-10 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm text-text placeholder:text-text-muted focus-ring focus-visible:border-primary focus-visible:bg-background"
-            />
-          </div>
-        </form>
-
         {/* Actions */}
-        <div className="flex items-center gap-1 ml-auto md:ml-0">
+        <div className="flex items-center gap-1 ml-auto">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="flex size-10 items-center justify-center rounded-md text-text transition-colors hover:bg-surface focus-ring"
+            aria-label="Search products"
+          >
+            <Search className="size-5" />
+          </button>
           {user ? (
             <div
               className="relative"
@@ -284,17 +275,17 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
       {mobileOpen && (
         <div className="border-t border-border bg-background lg:hidden">
           <div className="container-px py-4 flex flex-col gap-1">
-            <form onSubmit={handleSearch} className="mb-2">
-              <div className="relative w-full">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-                <input
-                  name="q"
-                  type="search"
-                  placeholder="Search products..."
-                  className="h-10 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm text-text placeholder:text-text-muted focus-ring"
-                />
-              </div>
-            </form>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                setSearchOpen(true);
+              }}
+              className="mb-2 flex h-10 w-full items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text-muted focus-ring"
+            >
+              <Search className="size-4" />
+              Search products...
+            </button>
             {categories.length > 0 && (
               <>
                 <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
@@ -336,6 +327,7 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
 
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
       <AccountModal open={accountOpen} onOpenChange={setAccountOpen} defaultTab={accountTab} />
+      <SearchModal open={searchOpen} onOpenChange={setSearchOpen} categories={categories} />
     </header>
   );
 }

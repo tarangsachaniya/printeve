@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Upload, Clock, CheckCircle2, FileText, ShoppingCart, Star, Info } from "lucide-react";
@@ -30,16 +30,34 @@ function formatCompletion(minutes: number | null): string | null {
 
 export function ProductConfigurator({ product }: { product: Product }) {
   const router = useRouter();
-  const { addItem } = useCart();
+  const searchParams = useSearchParams();
+  const { addItem, items: cartItems, updateItem, selectionKey } = useCart();
   const { setItem: setBuyNowItem } = useBuyNow();
   const { cityId } = useCity();
+
+  const editKey = searchParams.get("edit");
+  const editingItem = React.useMemo(
+    () => (editKey ? cartItems.find((i) => selectionKey(i) === editKey) ?? null : null),
+    [editKey, cartItems, selectionKey]
+  );
 
   const [selectedOptions, setSelectedOptions] = React.useState<Record<string, string | string[]>>(() => {
     const initial: Record<string, string | string[]> = {};
     for (const option of product.options) {
+      const editedValueIds = editingItem
+        ? editingItem.selection.options
+            .filter((o) => option.values.some((v) => v.field_option_value_id === o.field_option_value_id))
+            .map((o) => o.field_option_value_id)
+        : [];
       if (option.field_type === "multi_select") {
-        const defVal = defaultOptionValue(option);
-        initial[option.id] = defVal ? [defVal] : [];
+        if (editedValueIds.length > 0) {
+          initial[option.id] = editedValueIds;
+        } else {
+          const defVal = defaultOptionValue(option);
+          initial[option.id] = defVal ? [defVal] : [];
+        }
+      } else if (editedValueIds.length > 0) {
+        initial[option.id] = editedValueIds[0];
       } else {
         const defVal = defaultOptionValue(option);
         if (defVal) initial[option.id] = defVal;
@@ -68,16 +86,23 @@ export function ProductConfigurator({ product }: { product: Product }) {
 
   const minQty = tiers[0] ?? 1;
 
-  const [quantity, setQuantity] = React.useState(tiers[0] ?? 1);
+  const [quantity, setQuantity] = React.useState(editingItem?.quantity ?? tiers[0] ?? 1);
   const [file, setFile] = React.useState<File | null>(null);
+  const [existingArtworkFileName] = React.useState(editingItem?.artworkFileName);
   const [added, setAdded] = React.useState(false);
   const [dragOver, setDragOver] = React.useState(false);
   const [guidelinesOpen, setGuidelinesOpen] = React.useState(false);
   const guidelines = product.guidelines ?? [];
 
-  const [customWidth, setCustomWidth] = React.useState("");
-  const [customHeight, setCustomHeight] = React.useState("");
-  const [customUnit, setCustomUnit] = React.useState<DimensionUnit>("cm");
+  const [customWidth, setCustomWidth] = React.useState(
+    editingItem?.selection.custom_dimensions ? String(editingItem.selection.custom_dimensions.width) : ""
+  );
+  const [customHeight, setCustomHeight] = React.useState(
+    editingItem?.selection.custom_dimensions ? String(editingItem.selection.custom_dimensions.height) : ""
+  );
+  const [customUnit, setCustomUnit] = React.useState<DimensionUnit>(
+    editingItem?.selection.custom_dimensions?.unit ?? "cm"
+  );
 
   const optionValueIds = React.useMemo(
     () => Object.values(selectedOptions).flatMap(v => Array.isArray(v) ? v : v ? [v] : []),
@@ -236,13 +261,20 @@ export function ProductConfigurator({ product }: { product: Product }) {
           ? { width: Number(customWidth), height: Number(customHeight), unit: customUnit }
           : undefined,
       },
-      artworkFileName: file?.name,
+      artworkFileName: file?.name ?? existingArtworkFileName,
     };
   }
 
   function handleAddToCart() {
     const item = buildCartItem();
     if (!item) return;
+
+    if (editingItem && editKey) {
+      updateItem(editKey, item);
+      toast.success("Cart updated");
+      router.push("/cart");
+      return;
+    }
 
     addItem(item);
 
@@ -502,6 +534,13 @@ export function ProductConfigurator({ product }: { product: Product }) {
             <span className="flex items-center gap-2 text-sm font-medium text-text">
               <FileText className="size-4" /> {file.name}
             </span>
+          ) : existingArtworkFileName ? (
+            <>
+              <span className="flex items-center gap-2 text-sm font-medium text-text">
+                <FileText className="size-4" /> {existingArtworkFileName}
+              </span>
+              <span className="text-xs text-text-muted">Drag & drop or browse to replace this file</span>
+            </>
           ) : (
             <>
               <span className="text-sm font-medium text-text">
@@ -558,7 +597,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
       {/* CTA buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button size="lg" className="flex-1 py-3 sm:py-0" onClick={handleAddToCart} disabled={!canAddToCart}>
-          {added ? (
+          {editingItem ? (
+            "Save Changes"
+          ) : added ? (
             <>
               <CheckCircle2 className="size-4" /> Added to Cart
             </>
@@ -568,15 +609,17 @@ export function ProductConfigurator({ product }: { product: Product }) {
             </>
           )}
         </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="flex-1 py-3 sm:py-0"
-          onClick={handleBuyNow}
-          disabled={!canAddToCart}
-        >
-          Buy Now
-        </Button>
+        {!editingItem && (
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1 py-3 sm:py-0"
+            onClick={handleBuyNow}
+            disabled={!canAddToCart}
+          >
+            Buy Now
+          </Button>
+        )}
       </div>
 
       {/* Trust badges */}

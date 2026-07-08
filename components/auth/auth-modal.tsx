@@ -5,6 +5,7 @@ import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { isValidEmail, isValidIndianPhone } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -75,6 +76,12 @@ function LoginView({ onSuccess, onForgotPassword }: { onSuccess: () => void; onF
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isValidEmail(email)) {
+      const msg = "Please enter a valid email address.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -125,6 +132,18 @@ function RegisterView({ onSuccess }: { onSuccess: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isValidEmail(email)) {
+      const msg = "Please enter a valid email address.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+    if (!isValidIndianPhone(phone)) {
+      const msg = "Please enter a valid 10-digit mobile number.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -176,6 +195,12 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isValidEmail(email)) {
+      const msg = "Please enter a valid email address.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

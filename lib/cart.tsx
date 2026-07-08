@@ -11,6 +11,7 @@ interface CartContextValue {
   subtotal: number;
   addItem: (item: CartItem) => void;
   updateQuantity: (productId: string, selectionKey: string, quantity: number, totalPrice: number) => void;
+  updateItem: (oldKey: string, item: CartItem) => void;
   removeItem: (productId: string, selectionKey: string) => void;
   clear: () => void;
   selectionKey: (item: CartItem) => string;
@@ -84,18 +85,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const updateItem = React.useCallback((oldKey: string, item: CartItem) => {
+    setItems((prev) => {
+      const withoutOld = prev.filter((p) => makeKey(p) !== oldKey);
+      const newKey = makeKey(item);
+      if (withoutOld.some((p) => makeKey(p) === newKey)) {
+        return withoutOld.map((p) => (makeKey(p) === newKey ? item : p));
+      }
+      return [...withoutOld, item];
+    });
+  }, []);
+
   const removeItem = React.useCallback((productId: string, selectionKey: string) => {
     setItems((prev) => prev.filter((p) => !(p.productId === productId && makeKey(p) === selectionKey)));
   }, []);
 
   const clear = React.useCallback(() => setItems([]), []);
 
-  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const itemCount = items.length;
   const subtotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
 
   const value = React.useMemo(
-    () => ({ items, itemCount, subtotal, addItem, updateQuantity, removeItem, clear, selectionKey: makeKey }),
-    [items, itemCount, subtotal, addItem, updateQuantity, removeItem, clear]
+    () => ({ items, itemCount, subtotal, addItem, updateQuantity, updateItem, removeItem, clear, selectionKey: makeKey }),
+    [items, itemCount, subtotal, addItem, updateQuantity, updateItem, removeItem, clear]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, FileText } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, FileText, Pencil } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useCity } from "@/lib/city";
 import { useSiteSettings, usePricingConfig } from "@/lib/site-settings";
@@ -86,25 +86,34 @@ export default function CartPage() {
                 </div>
 
                 <div className="flex items-center gap-4 sm:flex-col sm:items-end">
-                  <div className="flex h-10 items-center rounded-md border border-border">
-                    <button
-                      className="flex h-full w-9 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40"
-                      onClick={() =>
-                        updateQuantity(item.productId, key, Math.max(1, item.quantity - 1), unitPrice * Math.max(1, item.quantity - 1))
-                      }
-                      disabled={item.quantity <= 1}
-                      aria-label="Decrease quantity"
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/products/${item.slug}?edit=${encodeURIComponent(key)}`}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                      aria-label="Edit item"
                     >
-                      <Minus className="size-3.5" />
-                    </button>
-                    <span className="w-10 text-center text-sm font-medium text-text">{item.quantity}</span>
-                    <button
-                      className="flex h-full w-9 items-center justify-center text-text-muted transition-colors hover:text-primary"
-                      onClick={() => updateQuantity(item.productId, key, item.quantity + 1, unitPrice * (item.quantity + 1))}
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="size-3.5" />
-                    </button>
+                      <Pencil className="size-4" />
+                    </Link>
+                    <div className="flex h-10 items-center rounded-md border border-border">
+                      <button
+                        className="flex h-full w-9 items-center justify-center text-text-muted transition-colors hover:text-primary disabled:opacity-40"
+                        onClick={() =>
+                          updateQuantity(item.productId, key, Math.max(1, item.quantity - 1), unitPrice * Math.max(1, item.quantity - 1))
+                        }
+                        disabled={item.quantity <= 1}
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="size-3.5" />
+                      </button>
+                      <span className="w-10 text-center text-sm font-medium text-text">{item.quantity}</span>
+                      <button
+                        className="flex h-full w-9 items-center justify-center text-text-muted transition-colors hover:text-primary"
+                        onClick={() => updateQuantity(item.productId, key, item.quantity + 1, unitPrice * (item.quantity + 1))}
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <p className="text-base font-bold text-text">{formatPrice(item.totalPrice)}</p>
                   <button

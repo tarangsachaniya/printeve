@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, Navigation, ChevronDown, Search, Check } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { useCity } from "@/lib/city";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { CitySelect } from "@/components/ui/city-select";
 import {
   Dialog,
   DialogContent,
@@ -12,96 +12,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
-function CitySelect({
-  cities,
-  value,
-  onValueChange,
-}: {
-  cities: { id: string; name: string; state: string }[];
-  value: string;
-  onValueChange: (id: string) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  const filtered = query
-    ? cities.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
-    : cities;
-
-  const selectedCity = cities.find((c) => c.id === value);
-
-  React.useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
-
-  React.useEffect(() => {
-    function handleOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
-      }
-    }
-    if (open) document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, [open]);
-
-  function handleSelect(id: string) {
-    onValueChange(id);
-    setOpen(false);
-    setQuery("");
-  }
-
-  return (
-    <div ref={containerRef} className="relative w-full">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3.5 py-2 text-sm text-text focus-ring focus-visible:border-primary"
-      >
-        <span className={cn(!selectedCity && "text-text-muted")}>
-          {selectedCity ? selectedCity.name : "Select your city"}
-        </span>
-        <ChevronDown className="size-4 shrink-0 text-text-muted" />
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-background text-text shadow-[var(--shadow-card-hover)]">
-          <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-            <Search className="size-3.5 shrink-0 text-text-muted" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search cities..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-text placeholder:text-text-muted outline-none"
-            />
-          </div>
-          <div className="max-h-48 overflow-y-auto p-1">
-            {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-center text-sm text-text-muted">No cities found</p>
-            ) : (
-              filtered.map((city) => (
-                <button
-                  key={city.id}
-                  type="button"
-                  onClick={() => handleSelect(city.id)}
-                  className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm text-text transition-colors hover:bg-surface"
-                >
-                  <Check className={cn("size-3.5 shrink-0 text-primary", city.id === value ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate">{city.name}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function CityPickerDialog() {
   const { cities, cityId, pickerOpen, selectCity, closePicker } = useCity();

@@ -13,9 +13,12 @@ import { createOrder, type CreateOrderPayload } from "@/lib/orders";
 import { validateCoupon, type CouponValidationResult } from "@/lib/coupons";
 import { useSiteSettings, usePricingConfig } from "@/lib/site-settings";
 import { computeOrderBill } from "@/lib/pricing";
-import { formatPrice, cn } from "@/lib/utils";
+import { formatPrice, cn, isValidIndianPhone } from "@/lib/utils";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { AuthModal } from "@/components/auth/auth-modal";
 import { Button } from "@/components/ui/button";
+import { CitySelect, StateSelect } from "@/components/ui/city-select";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,11 +70,14 @@ function CheckoutForm() {
   const settings = useSiteSettings();
   const pricingConfig = usePricingConfig();
   const { cities, cityId } = useCity();
+  const { user, loading: authLoading } = useAuth();
+  const addressStates = Array.from(new Set(cities.map((c) => c.state)));
 
   const items: CartItem[] = isBuyNow ? (buyNow.item ? [buyNow.item] : []) : cart.items;
   const subtotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
 
   const [step, setStep] = React.useState<Step>("address");
+  const [authModalOpen, setAuthModalOpen] = React.useState(true);
   const [address, setAddress] = React.useState<AddressForm>(EMPTY_ADDRESS);
   const [paying, setPaying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -109,6 +115,14 @@ function CheckoutForm() {
       .catch(() => setSavedAddresses([]));
   }, []);
 
+  // Checkout requires login: if the guest dismisses the auth modal without
+  // signing in, there's nothing left to do here — send them back to the cart.
+  React.useEffect(() => {
+    if (!authLoading && !user && !authModalOpen) {
+      router.push("/cart");
+    }
+  }, [authLoading, user, authModalOpen, router]);
+
   const selectedAddress = savedAddresses?.find((a) => a.id === selectedAddressId) ?? null;
 
   function updateNewAddress<K extends keyof Omit<Address, "id">>(key: K, value: Address[K]) {
@@ -117,6 +131,12 @@ function CheckoutForm() {
 
   async function handleSaveNewAddress(e: React.FormEvent) {
     e.preventDefault();
+    if (!isValidIndianPhone(newAddress.phone)) {
+      const msg = "Please enter a valid 10-digit mobile number.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setSavingAddress(true);
     setError(null);
     try {
@@ -162,7 +182,7 @@ function CheckoutForm() {
     ? !!selectedAddressId
     : !!(
         address.fullName.trim() &&
-        address.phone.trim() &&
+        isValidIndianPhone(address.phone) &&
         address.line1.trim() &&
         address.city.trim() &&
         address.state.trim() &&
@@ -271,6 +291,14 @@ function CheckoutForm() {
     );
   }
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-text-muted" />
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-3xl container-px py-20 text-center">
@@ -309,7 +337,14 @@ function CheckoutForm() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl container-px py-10 lg:py-14">
+    <>
+      <div
+        className={cn(
+          "mx-auto max-w-7xl container-px py-10 lg:py-14",
+          !user && "pointer-events-none select-none opacity-50"
+        )}
+        aria-hidden={!user}
+      >
       <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">Checkout</h1>
 
       {/* Stepper */}
@@ -317,23 +352,42 @@ function CheckoutForm() {
         {STEPS.map((s, idx) => {
           const isActive = s.id === step;
           const isDone = STEPS.findIndex((x) => x.id === step) > idx;
+          const circle = (
+            <span
+              className={cn(
+                "flex size-7 items-center justify-center rounded-full border text-xs font-semibold",
+                isActive
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : isDone
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-text-muted"
+              )}
+            >
+              {isDone ? <Check className="size-3.5" /> : idx + 1}
+            </span>
+          );
+          const labelText = (
+            <span className={cn("text-sm font-medium", isActive ? "text-text" : "text-text-muted")}>
+              {s.label}
+            </span>
+          );
           return (
             <li key={s.id} className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full border text-xs font-semibold",
-                  isActive
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : isDone
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border text-text-muted"
-                )}
-              >
-                {isDone ? <Check className="size-3.5" /> : idx + 1}
-              </span>
-              <span className={cn("text-sm font-medium", isActive ? "text-text" : "text-text-muted")}>
-                {s.label}
-              </span>
+              {isDone ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(s.id)}
+                  className="flex items-center gap-2 cursor-pointer hover:opacity-80"
+                >
+                  {circle}
+                  {labelText}
+                </button>
+              ) : (
+                <>
+                  {circle}
+                  {labelText}
+                </>
+              )}
               {idx < STEPS.length - 1 && <span className="mx-1 h-px w-8 bg-border sm:w-16" />}
             </li>
           );
@@ -403,11 +457,24 @@ function CheckoutForm() {
                   </div>
                   <div>
                     <Label className="mb-1.5 block" htmlFor="city">City</Label>
-                    <Input id="city" value={address.city} onChange={(e) => updateAddress("city", e.target.value)} placeholder="Mumbai" />
+                    <CitySelect
+                      cities={cities}
+                      value={cities.find((c) => c.name === address.city)?.id ?? ""}
+                      onValueChange={(id) => {
+                        const city = cities.find((c) => c.id === id);
+                        if (!city) return;
+                        updateAddress("city", city.name);
+                        updateAddress("state", city.state);
+                      }}
+                    />
                   </div>
                   <div>
                     <Label className="mb-1.5 block" htmlFor="state">State</Label>
-                    <Input id="state" value={address.state} onChange={(e) => updateAddress("state", e.target.value)} placeholder="Maharashtra" />
+                    <StateSelect
+                      states={addressStates}
+                      value={address.state}
+                      onValueChange={(state) => updateAddress("state", state)}
+                    />
                   </div>
                   <div>
                     <Label className="mb-1.5 block" htmlFor="pincode">Pincode</Label>
@@ -433,9 +500,14 @@ function CheckoutForm() {
                   {reviewAddress.line2 ? `, ${reviewAddress.line2}` : ""}, {reviewAddress.city}, {reviewAddress.state} {reviewAddress.pincode}
                 </p>
                 <p className="mt-1 text-sm text-text-muted">{reviewAddress.phone}</p>
-                <button onClick={() => setStep("address")} className="mt-2 text-xs font-medium text-primary hover:underline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setStep("address")}
+                  className="mt-2 bg-neutral-900 text-white hover:bg-neutral-800 border-transparent"
+                >
                   Edit address
-                </button>
+                </Button>
               </div>
 
               <div className="mt-4 flex flex-col gap-3">
@@ -630,11 +702,24 @@ function CheckoutForm() {
               </div>
               <div>
                 <Label className="mb-1.5 block" htmlFor="newCity">City</Label>
-                <Input id="newCity" required value={newAddress.city} onChange={(e) => updateNewAddress("city", e.target.value)} placeholder="Mumbai" />
+                <CitySelect
+                  cities={cities}
+                  value={cities.find((c) => c.name === newAddress.city)?.id ?? ""}
+                  onValueChange={(id) => {
+                    const city = cities.find((c) => c.id === id);
+                    if (!city) return;
+                    updateNewAddress("city", city.name);
+                    updateNewAddress("state", city.state);
+                  }}
+                />
               </div>
               <div>
                 <Label className="mb-1.5 block" htmlFor="newState">State</Label>
-                <Input id="newState" required value={newAddress.state} onChange={(e) => updateNewAddress("state", e.target.value)} placeholder="Maharashtra" />
+                <StateSelect
+                  states={addressStates}
+                  value={newAddress.state}
+                  onValueChange={(state) => updateNewAddress("state", state)}
+                />
               </div>
               <div>
                 <Label className="mb-1.5 block" htmlFor="newPincode">Pincode</Label>
@@ -647,7 +732,9 @@ function CheckoutForm() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+      {!user && <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />}
+    </>
   );
 }
 
