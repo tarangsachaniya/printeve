@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Loader2, CheckCircle2, Circle, PackageX, AlertTriangle, Download } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Circle, PackageX, AlertTriangle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { getOrderById } from "@/lib/orders";
@@ -14,6 +14,7 @@ import { formatPrice, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const TIMELINE_STEPS: { status: OrderStatus; label: string }[] = [
   { status: "pending", label: "Order Placed" },
@@ -46,8 +47,43 @@ export default function OrderDetailPage() {
 
   if (order === undefined) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-text-muted" />
+      <div className="flex flex-col gap-6">
+        <div>
+          <Skeleton className="h-4 w-28" />
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <Skeleton className="mt-2 h-3 w-32" />
+        </div>
+
+        <Card className="p-5">
+          <Skeleton className="h-4 w-16" />
+          <div className="mt-4 flex flex-col gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="size-5 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <Skeleton className="h-4 w-16" />
+          <div className="mt-3 flex flex-col gap-2.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+            <Skeleton className="h-9 w-40" />
+            <Skeleton className="h-9 w-40" />
+          </div>
+        </Card>
       </div>
     );
   }

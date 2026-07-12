@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Package, ChevronRight, Loader2, AlertTriangle } from "lucide-react";
+import { Package, ChevronRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { getOrders } from "@/lib/orders";
@@ -12,6 +12,7 @@ import { formatPrice, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_VARIANT: Record<Order["status"], "default" | "primary" | "secondary" | "accent" | "outline"> = {
   pending: "outline",
@@ -48,8 +49,20 @@ export default function OrdersPage() {
 
       <div className="mt-8">
         {orders === null ? (
-          <div className="flex min-h-[40vh] items-center justify-center">
-            <Loader2 className="size-6 animate-spin text-text-muted" />
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="flex items-center justify-between gap-4 p-4">
+                <div>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="mt-1.5 h-3 w-20" />
+                </div>
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="size-4 rounded-full" />
+                </div>
+              </Card>
+            ))}
           </div>
         ) : error ? (
           <Card className="flex flex-col items-center gap-3 p-10 text-center">

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProfileForm {
   fullName: string;
@@ -75,9 +76,23 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-text-muted" />
-      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="mt-1.5 h-4 w-56" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 max-w-md">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="mt-1.5 h-10 w-full rounded-md" />
+              </div>
+            ))}
+            <Skeleton className="h-10 w-32 rounded-md" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 

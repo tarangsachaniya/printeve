@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { IconChip } from "@/components/ui/icon-chip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { selectableCardClasses } from "@/components/ui/selectable-card";
 import {
   Dialog,
@@ -293,8 +294,21 @@ function CheckoutForm() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-text-muted" />
+      <div className="mx-auto max-w-7xl container-px py-10 lg:py-14">
+        <Skeleton className="h-8 w-32" />
+        <div className="mt-6 flex items-center gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Skeleton className="size-7 rounded-full" />
+              <Skeleton className="h-4 w-16" />
+              {i < 2 && <span className="mx-1 h-px w-8 bg-border sm:w-16" />}
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
+          <Skeleton className="h-72 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </div>
       </div>
     );
   }
@@ -401,8 +415,15 @@ function CheckoutForm() {
               <h2 className="text-base font-semibold text-text">Delivery Address</h2>
 
               {savedAddresses === null ? (
-                <div className="mt-6 flex justify-center">
-                  <Loader2 className="size-5 animate-spin text-text-muted" />
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="flex flex-col gap-2 rounded-xl border border-border p-4">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  ))}
                 </div>
               ) : usingSavedAddresses ? (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">

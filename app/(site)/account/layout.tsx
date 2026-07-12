@@ -3,12 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Loader2, Lock, Package, MapPin, Palette, User, Settings } from "lucide-react";
+import { Lock, Package, MapPin, Palette, User, Settings } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AuthModal } from "@/components/auth/auth-modal";
 
 const NAV_ITEMS = [
@@ -37,8 +38,23 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-text-muted" />
+      <div className="mx-auto max-w-5xl container-px py-10 lg:py-14">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
+          <div className="h-fit overflow-hidden rounded-2xl border border-border bg-background divide-y divide-border">
+            {NAV_ITEMS.map((item) => (
+              <div key={item.href} className="flex items-center gap-3 px-4 py-3">
+                <Skeleton className="size-8 rounded-full" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
