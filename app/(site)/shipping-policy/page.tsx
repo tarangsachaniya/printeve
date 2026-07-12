@@ -5,7 +5,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const page = config.pages["shipping-policy"];
   return {
-    title: page?.meta_title ?? "Shipping Policy — PrintEve",
+    title: page?.meta_title ?? "Shipping Policy — Priinteve",
     description: page?.meta_description ?? undefined,
   };
 }

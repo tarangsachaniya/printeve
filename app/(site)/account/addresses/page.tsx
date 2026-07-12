@@ -30,6 +30,11 @@ const EMPTY_FORM: Omit<Address, "id"> = {
   state: "",
   pincode: "",
   isDefault: false,
+  houseNumber: "",
+  floor: "",
+  towerBlock: "",
+  landmark: "",
+  mapsLink: "",
   latitude: null,
   longitude: null,
 };
@@ -86,6 +91,11 @@ export default function AddressesPage() {
       state: address.state,
       pincode: address.pincode,
       isDefault: address.isDefault,
+      houseNumber: address.houseNumber ?? "",
+      floor: address.floor ?? "",
+      towerBlock: address.towerBlock ?? "",
+      landmark: address.landmark ?? "",
+      mapsLink: address.mapsLink ?? "",
       latitude: address.latitude ?? null,
       longitude: address.longitude ?? null,
     });
@@ -264,6 +274,26 @@ export default function AddressesPage() {
               <div className="sm:col-span-2">
                 <Label className="mb-1.5 block" htmlFor="line2">Address Line 2 (optional)</Label>
                 <Input id="line2" value={form.line2 ?? ""} onChange={(e) => update("line2", e.target.value)} placeholder="Apartment, suite, etc." />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="houseNumber">House / Flat No. (optional)</Label>
+                <Input id="houseNumber" value={form.houseNumber ?? ""} onChange={(e) => update("houseNumber", e.target.value)} placeholder="e.g. B-403" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="floor">Floor (optional)</Label>
+                <Input id="floor" value={form.floor ?? ""} onChange={(e) => update("floor", e.target.value)} placeholder="e.g. 4th floor" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="towerBlock">Tower / Block (optional)</Label>
+                <Input id="towerBlock" value={form.towerBlock ?? ""} onChange={(e) => update("towerBlock", e.target.value)} placeholder="e.g. B block" />
+              </div>
+              <div>
+                <Label className="mb-1.5 block" htmlFor="landmark">Nearby Landmark (optional)</Label>
+                <Input id="landmark" value={form.landmark ?? ""} onChange={(e) => update("landmark", e.target.value)} placeholder="e.g. Near Felicia" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="mb-1.5 block" htmlFor="mapsLink">Google Maps Link (optional)</Label>
+                <Input id="mapsLink" value={form.mapsLink ?? ""} onChange={(e) => update("mapsLink", e.target.value)} placeholder="Paste a Google Maps link" />
               </div>
               <div>
                 <Label className="mb-1.5 block" htmlFor="city">City</Label>

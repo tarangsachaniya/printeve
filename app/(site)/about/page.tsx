@@ -44,7 +44,7 @@ export default function AboutPage() {
               Premium printing, built on trust
             </h1>
             <p className="mt-4 text-base leading-relaxed text-text-muted lg:text-lg">
-              PrintEve helps businesses of every size bring their brand to life — from business
+              Priinteve helps businesses of every size bring their brand to life — from business
               cards and marketing materials to packaging and large-format banners — with
               consistent quality, transparent pricing and dependable delivery.
             </p>
@@ -70,7 +70,7 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">Our Story</h2>
             <p className="mt-4 text-sm leading-relaxed text-text-muted">
-              PrintEve began with a simple idea: ordering custom prints shouldn&apos;t mean
+              Priinteve began with a simple idea: ordering custom prints shouldn&apos;t mean
               compromising on quality, clarity of pricing, or reliability. What started as a
               single print shop has grown into a nationwide platform connecting businesses with a
               network of quality-checked print partners.
@@ -125,7 +125,7 @@ export default function AboutPage() {
       {/* Why choose us (reuse content) */}
       <section className="border-y border-border bg-surface">
         <div className="mx-auto max-w-7xl container-px py-14">
-          <h2 className="text-center text-2xl font-bold tracking-tight text-text sm:text-3xl">Why Businesses Choose PrintEve</h2>
+          <h2 className="text-center text-2xl font-bold tracking-tight text-text sm:text-3xl">Why Businesses Choose Priinteve</h2>
           <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {whyChooseUs.map((item) => (
               <div key={item.title} className="rounded-lg border border-border bg-background p-6">

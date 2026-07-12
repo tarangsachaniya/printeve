@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Printer, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { SocialIcon, type SocialPlatform } from "@/components/ui/social-icon";
 import type { SiteConfig } from "@/lib/site-config";
 import type { Category } from "@/lib/types";
@@ -46,11 +47,8 @@ export function SiteFooter({ siteConfig, categories = [] }: { siteConfig?: SiteC
       <div className="mx-auto max-w-7xl container-px py-12">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Printer className="size-5" />
-              </span>
-              <span className="text-lg font-bold tracking-tight text-text">PrintEve</span>
+            <Link href="/" className="flex items-center">
+              <Image src="/logo.png" alt="Priinteve" width={139} height={36} className="h-8 w-auto" />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-text-muted">
               {description}
@@ -72,7 +70,7 @@ export function SiteFooter({ siteConfig, categories = [] }: { siteConfig?: SiteC
                   key={platform}
                   href="#"
                   className="flex size-9 items-center justify-center rounded-md border border-border text-text-muted transition-colors hover:border-primary hover:text-primary"
-                  aria-label={`PrintEve on ${platform}`}
+                  aria-label={`Priinteve on ${platform}`}
                 >
                   <SocialIcon platform={platform} className="size-4" />
                 </a>
@@ -118,7 +116,7 @@ export function SiteFooter({ siteConfig, categories = [] }: { siteConfig?: SiteC
 
         <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
           <p className="text-xs text-text-muted">
-            &copy; {new Date().getFullYear()} PrintEve. All rights reserved.
+            &copy; {new Date().getFullYear()} Priinteve. All rights reserved.
           </p>
           <div className="flex gap-5 text-xs text-text-muted">
             {(policyLinks.length > 0 ? policyLinks : [

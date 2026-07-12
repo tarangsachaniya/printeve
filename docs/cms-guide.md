@@ -1,4 +1,4 @@
-# PrintEve Website CMS — Content Management Guide
+# Priinteve Website CMS — Content Management Guide
 
 > **Access:** Only **superadmin** users can see and use the Website CMS.  
 > **Location:** Admin Panel → Sidebar → **Website** → **Website CMS**  

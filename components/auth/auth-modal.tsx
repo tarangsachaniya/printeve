@@ -45,7 +45,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               <DialogDescription>
                 {tab === "login"
                   ? "Sign in to manage your orders and saved designs."
-                  : "Join PrintEve to track orders, save designs and reorder faster."}
+                  : "Join Priinteve to track orders, save designs and reorder faster."}
               </DialogDescription>
             </DialogHeader>
             <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "register")}>

@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, User, Menu, X, ChevronDown, Printer, MapPin, Settings, LogOut, UserCircle, Package, Layers } from "lucide-react";
+import { Search, User, Menu, X, ChevronDown, MapPin, Settings, LogOut, UserCircle, Package, Layers } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -92,11 +93,8 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
 
       {/* Main bar */}
       <div className="mx-auto flex max-w-7xl items-center gap-4 container-px py-3.5">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Printer className="size-5" />
-          </span>
-          <span className="text-lg font-bold tracking-tight text-text">PrintEve</span>
+        <Link href="/" className="flex items-center shrink-0">
+          <Image src="/logo.png" alt="Priinteve" width={139} height={36} className="h-8 w-auto" priority />
         </Link>
 
         {/* Desktop nav */}

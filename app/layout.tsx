@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PrintEve — Premium Custom Printing",
+  title: "Priinteve — Premium Custom Printing",
   description:
     "Business cards, flyers, brochures, posters, banners, stickers, packaging and bulk printing — designed, printed and delivered with precision.",
 };

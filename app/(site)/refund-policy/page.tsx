@@ -5,7 +5,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const page = config.pages["refund-policy"];
   return {
-    title: page?.meta_title ?? "Refund Policy — PrintEve",
+    title: page?.meta_title ?? "Refund Policy — Priinteve",
     description: page?.meta_description ?? undefined,
   };
 }

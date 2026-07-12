@@ -17,7 +17,7 @@ async function getProducts(category?: string): Promise<Product[]> {
 }
 
 export const metadata = {
-  title: "Shop All Products — PrintEve",
+  title: "Shop All Products — Priinteve",
   description: "Browse business cards, flyers, brochures, posters, banners, stickers and more.",
 };
 

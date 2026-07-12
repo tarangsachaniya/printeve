@@ -144,6 +144,11 @@ export interface Address {
   state: string;
   pincode: string;
   isDefault?: boolean;
+  houseNumber?: string | null;
+  floor?: string | null;
+  towerBlock?: string | null;
+  landmark?: string | null;
+  mapsLink?: string | null;
   /** Customer-provided delivery coordinates, used for printer radius matching. */
   latitude?: number | null;
   longitude?: number | null;
