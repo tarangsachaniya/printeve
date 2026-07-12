@@ -4,13 +4,13 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, User, Menu, X, ChevronDown, MapPin, Settings, LogOut, UserCircle, Package, Layers } from "lucide-react";
+import { Search, User, Menu, X, ChevronDown, MapPin, Settings, LogOut, UserCircle, Package, Layers, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
+import { useCart } from "@/lib/cart";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { AccountModal } from "@/components/auth/account-modal";
 import { SearchModal } from "./search-modal";
-import { CartSheet } from "./cart-sheet";
 import { cn } from "@/lib/utils";
 import type { SiteConfig } from "@/lib/site-config";
 import type { Category } from "@/lib/types";
@@ -40,6 +40,7 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
   const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
   const { user, logout } = useAuth();
   const { cityName, openPicker } = useCity();
+  const { itemCount } = useCart();
   const router = useRouter();
 
   function openAccountModal(tab: "profile" | "addresses" | "settings") {
@@ -65,7 +66,7 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
     <header
       className={cn(
         "sticky top-0 z-40 w-full border-b border-border bg-background transition-shadow",
-        scrolled && "shadow-[var(--shadow-card)] backdrop-blur-md bg-background/80"
+        scrolled && "shadow-[var(--shadow-brand)] backdrop-blur-md bg-background/80"
       )}
     >
       {/* Top bar */}
@@ -118,50 +119,56 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
                 Products
                 <ChevronDown className="size-4" />
               </button>
-              {megaOpen && (
-                <div className="absolute left-0 top-full w-[640px] rounded-lg border border-border bg-background p-5 shadow-[var(--shadow-card-hover)]">
-                  <div className="grid grid-cols-2 gap-4">
-                    {categories.map((category) => (
-                      <div key={category.id}>
-                        <Link
-                          href={`/products?category=${category.slug}`}
-                          className="flex items-center gap-2 text-sm font-semibold text-text hover:text-primary transition-colors"
-                          onClick={() => setMegaOpen(false)}
-                        >
+              <div
+                className={cn(
+                  "absolute left-0 top-full w-[640px] origin-top rounded-xl border border-border bg-background p-5 shadow-[var(--shadow-card-hover)] transition-all duration-150",
+                  megaOpen
+                    ? "pointer-events-auto translate-y-0 opacity-100"
+                    : "pointer-events-none -translate-y-1 opacity-0"
+                )}
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  {categories.map((category) => (
+                    <div key={category.id}>
+                      <Link
+                        href={`/products?category=${category.slug}`}
+                        className="flex items-center gap-2 text-sm font-semibold text-text hover:text-primary transition-colors"
+                        onClick={() => setMegaOpen(false)}
+                      >
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft">
                           {category.icon_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={category.icon_url} alt="" className="size-5 object-contain" />
+                            <img src={category.icon_url} alt="" className="size-4 object-contain" />
                           ) : (
-                            <Layers className="size-4 text-primary" />
+                            <Layers className="size-3.5 text-primary" />
                           )}
-                          {category.title}
-                        </Link>
-                        <div className="mt-1.5 ml-7 flex flex-col gap-0.5">
-                          {category.products.slice(0, 4).map((product) => (
-                            <Link
-                              key={product.slug}
-                              href={`/products/${product.slug}`}
-                              className="text-xs text-text-muted hover:text-primary transition-colors"
-                              onClick={() => setMegaOpen(false)}
-                            >
-                              {product.name}
-                            </Link>
-                          ))}
-                        </div>
+                        </span>
+                        {category.title}
+                      </Link>
+                      <div className="mt-1.5 ml-9 flex flex-col gap-0.5">
+                        {category.products.slice(0, 4).map((product) => (
+                          <Link
+                            key={product.slug}
+                            href={`/products/${product.slug}`}
+                            className="text-xs text-text-muted hover:text-primary transition-colors"
+                            onClick={() => setMegaOpen(false)}
+                          >
+                            {product.name}
+                          </Link>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 border-t border-border pt-3">
-                    <Link
-                      href="/products"
-                      className="text-sm font-medium text-primary hover:underline"
-                      onClick={() => setMegaOpen(false)}
-                    >
-                      View all products &rarr;
-                    </Link>
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+                <Link
+                  href="/products"
+                  className="mt-4 flex items-center justify-between rounded-lg bg-[image:var(--gradient-brand)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  onClick={() => setMegaOpen(false)}
+                >
+                  View all products
+                  <span aria-hidden>&rarr;</span>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -202,12 +209,20 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
                 aria-label="Account menu"
                 onClick={() => setUserMenuOpen((v) => !v)}
               >
-                <User className="size-5" />
+                <span className="flex size-7 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <User className="size-4" />
+                </span>
                 <span className="hidden sm:inline">{user.fullName.split(" ")[0]}</span>
                 <ChevronDown className="size-4" />
               </button>
-              {userMenuOpen && (
-                <div className="absolute right-0 top-full w-56 rounded-lg border border-border bg-background p-1.5 shadow-[var(--shadow-card-hover)]">
+              <div
+                className={cn(
+                  "absolute right-0 top-full w-56 origin-top-right rounded-xl border border-border bg-background p-1.5 shadow-[var(--shadow-card-hover)] transition-all duration-150",
+                  userMenuOpen
+                    ? "pointer-events-auto translate-y-0 opacity-100"
+                    : "pointer-events-none -translate-y-1 opacity-0"
+                )}
+              >
                   <Link
                     href="/account/orders"
                     onClick={() => setUserMenuOpen(false)}
@@ -245,8 +260,7 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
                   >
                     <LogOut className="size-4" /> Sign Out
                   </button>
-                </div>
-              )}
+              </div>
             </div>
           ) : (
             <button
@@ -258,7 +272,18 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
               <User className="size-5" />
             </button>
           )}
-          <CartSheet />
+          <Link
+            href="/cart"
+            className="relative flex size-10 items-center justify-center rounded-md text-text transition-colors hover:bg-surface focus-ring"
+            aria-label="View cart"
+          >
+            <ShoppingCart className="size-5" />
+            {itemCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground shadow-[var(--shadow-brand)]">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            )}
+          </Link>
           <button
             className="flex size-10 items-center justify-center rounded-md text-text transition-colors hover:bg-surface focus-ring lg:hidden"
             aria-label="Toggle menu"

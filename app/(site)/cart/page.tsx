@@ -23,8 +23,8 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-3xl container-px py-20 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-surface">
-          <ShoppingBag className="size-7 text-text-muted" />
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary-soft">
+          <ShoppingBag className="size-7 text-primary" />
         </div>
         <h1 className="mt-5 text-2xl font-bold text-text">
           {settings.empty_cart_title || "Your cart is empty"}
@@ -43,7 +43,7 @@ export default function CartPage() {
   const bill = computeOrderBill(subtotal, pricingConfig, cityDeliveryFee);
 
   return (
-    <div className="mx-auto max-w-7xl container-px py-10 lg:py-14">
+    <div className="mx-auto max-w-7xl container-px py-10 pb-28 lg:py-14 lg:pb-14">
       <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">Shopping Cart</h1>
       <p className="mt-1 text-sm text-text-muted">{items.length} item{items.length > 1 ? "s" : ""} in your cart</p>
 
@@ -53,8 +53,8 @@ export default function CartPage() {
             const key = selectionKey(item);
             const unitPrice = item.unitPrice;
             return (
-              <Card key={key} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                <div className="relative size-24 shrink-0 overflow-hidden rounded-md border border-border bg-surface">
+              <Card key={key} className="flex flex-col gap-4 rounded-xl p-4 transition-shadow hover:shadow-[var(--shadow-card-hover)] sm:flex-row sm:items-center">
+                <div className="relative size-24 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
                   {item.image ? (
                     <Image src={item.image} alt={item.name} fill className="object-cover" />
                   ) : (
@@ -130,7 +130,7 @@ export default function CartPage() {
 
         {/* Order summary */}
         <div>
-          <Card className="sticky top-24 p-5">
+          <Card className="lg:sticky lg:top-24 rounded-xl p-5 shadow-[var(--shadow-card-hover)]">
             <h2 className="text-base font-semibold text-text">Order Summary</h2>
             <dl className="mt-4 flex flex-col gap-2 text-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Service</p>
@@ -175,31 +175,52 @@ export default function CartPage() {
                 </p>
               )}
 
-              <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
-                <dt className="text-text">Total</dt>
-                <dd className="text-text">{formatPrice(bill.grandTotal)}</dd>
-              </div>
             </dl>
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-primary-soft px-3 py-2.5 text-base font-bold text-primary-soft-fg">
+              <span>Total</span>
+              <span>{formatPrice(bill.grandTotal)}</span>
+            </div>
             {!bill.meetsMinOrder && (
               <p className="mt-3 rounded-md border border-danger/30 bg-danger/5 p-2.5 text-xs text-danger">
                 Minimum order amount is {formatPrice(pricingConfig.min_order_price)}. Add {formatPrice(pricingConfig.min_order_price - subtotal)} more to checkout.
               </p>
             )}
             {bill.meetsMinOrder ? (
-              <Button asChild size="lg" className="mt-5 w-full">
+              <Button asChild size="lg" className="mt-5 hidden w-full lg:flex">
                 <Link href="/checkout">
                   Proceed to Checkout <ArrowRight className="size-4" />
                 </Link>
               </Button>
             ) : (
-              <Button size="lg" className="mt-5 w-full" disabled>
+              <Button size="lg" className="mt-5 hidden w-full lg:flex" disabled>
                 Proceed to Checkout <ArrowRight className="size-4" />
               </Button>
             )}
-            <Button asChild variant="outline" size="sm" className="mt-2 w-full">
+            <Button asChild variant="outline" size="sm" className="mt-2 hidden w-full lg:flex">
               <Link href="/products">Continue Shopping</Link>
             </Button>
           </Card>
+        </div>
+      </div>
+
+      {/* Sticky mobile checkout bar */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 p-3 backdrop-blur-md lg:hidden">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 container-px">
+          <div>
+            <p className="text-xs text-text-muted">Total</p>
+            <p className="text-lg font-bold text-text">{formatPrice(bill.grandTotal)}</p>
+          </div>
+          {bill.meetsMinOrder ? (
+            <Button asChild size="lg" className="flex-1 max-w-[220px]">
+              <Link href="/checkout">
+                Checkout <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button size="lg" className="flex-1 max-w-[220px]" disabled>
+              Checkout <ArrowRight className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 
