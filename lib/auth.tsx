@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 interface AuthContextValue {
@@ -27,8 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await api.get<{ user: User }>("/auth/me");
       setUser(data.user);
-    } catch {
-      setUser(null);
+    } catch (err) {
+      // Only a genuine 401 means "not logged in". Other failures (network
+      // blips, transient 5xxs) shouldn't wipe an otherwise-valid session.
+      if (err instanceof ApiError && err.status === 401) setUser(null);
     }
   }, []);
 
