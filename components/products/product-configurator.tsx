@@ -594,9 +594,9 @@ export function ProductConfigurator({ product }: { product: Product }) {
         <p className="mt-1 text-[11px] text-text-muted">Final price confirmed at checkout.</p>
       </div>
 
-      {/* CTA buttons */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" className="flex-1 py-3 sm:py-0" onClick={handleAddToCart} disabled={!canAddToCart}>
+      {/* CTA buttons — fixed bottom bar on mobile, in-flow on desktop */}
+      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-3 border-t border-border bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0">
+        <Button size="lg" className="flex-1 py-3 lg:py-0" onClick={handleAddToCart} disabled={!canAddToCart}>
           {editingItem ? (
             "Save Changes"
           ) : added ? (
@@ -613,7 +613,7 @@ export function ProductConfigurator({ product }: { product: Product }) {
           <Button
             size="lg"
             variant="outline"
-            className="flex-1 py-3 sm:py-0"
+            className="flex-1 py-3 lg:py-0"
             onClick={handleBuyNow}
             disabled={!canAddToCart}
           >

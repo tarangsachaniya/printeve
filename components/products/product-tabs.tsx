@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { FAQ, Specification } from "@/lib/types";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 interface ProductTabsProps {
   description: string | null;
@@ -51,11 +52,11 @@ export function ProductTabs({ description, faqs, finishAndCare, specifications }
       <div className="py-6">
         {active === "Specifications" && (
           specifications.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+            <div className="flex flex-col">
               {specifications.map((spec, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-2 py-2 border-b border-border/50">
-                  <span className="text-sm text-text-muted">{spec.key}</span>
-                  <span className="text-sm font-medium text-text text-right">{spec.value || "—"}</span>
+                <div key={i} className="flex gap-2 py-2 border-b border-border/50">
+                  <span className="w-1/4 shrink-0 text-sm text-text-muted">{spec.key}</span>
+                  <span className="w-3/4 text-sm font-medium text-text">{spec.value || "—"}</span>
                 </div>
               ))}
             </div>
@@ -67,14 +68,14 @@ export function ProductTabs({ description, faqs, finishAndCare, specifications }
         )}
 
         {active === "FAQs" && (
-          <div className="space-y-4">
+          <Accordion type="single" collapsible>
             {faqs.map((faq, i) => (
-              <div key={i}>
-                <h4 className="text-sm font-semibold text-text">{faq.question}</h4>
-                <p className="mt-1 text-sm text-text-muted">{faq.answer}</p>
-              </div>
+              <AccordionItem key={i} value={`faq-${i}`} className={i === faqs.length - 1 ? "border-b-0" : ""}>
+                <AccordionTrigger>{faq.question}</AccordionTrigger>
+                <AccordionContent>{faq.answer}</AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         )}
 
         {active === "Finish & Care" && (
