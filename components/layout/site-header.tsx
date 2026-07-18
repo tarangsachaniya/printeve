@@ -10,6 +10,8 @@ import { useCity } from "@/lib/city";
 import { useCart } from "@/lib/cart";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { SearchModal } from "./search-modal";
+import { ThemeToggle } from "./theme-toggle";
+import { ProductImage } from "@/components/product-image";
 import { cn } from "@/lib/utils";
 import type { SiteConfig } from "@/lib/site-config";
 import type { Category } from "@/lib/types";
@@ -136,15 +138,18 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
                         </span>
                         {category.title}
                       </Link>
-                      <div className="mt-1.5 ml-9 flex flex-col gap-0.5">
-                        {category.products.slice(0, 4).map((product) => (
+                      <div className="mt-1.5 ml-9 flex flex-col gap-1">
+                        {category.products.slice(0, 3).map((product) => (
                           <Link
                             key={product.slug}
                             href={`/products/${product.slug}`}
-                            className="text-xs text-text-muted hover:text-primary transition-colors"
+                            className="flex items-center gap-2 rounded-md py-1 pr-2 text-xs text-text-muted transition-colors hover:bg-surface hover:text-primary"
                             onClick={() => setMegaOpen(false)}
                           >
-                            {product.name}
+                            <span className="relative size-10 shrink-0 overflow-hidden rounded-md bg-surface">
+                              <ProductImage src={product.images?.[0]} alt={product.name} sizes="40px" />
+                            </span>
+                            <span className="line-clamp-2">{product.name}</span>
                           </Link>
                         ))}
                       </div>
@@ -184,6 +189,7 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
           >
             <Search className="size-5" />
           </button>
+          <ThemeToggle />
           {user ? (
             <div
               className="relative"

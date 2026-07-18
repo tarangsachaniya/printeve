@@ -73,7 +73,7 @@ export interface Category {
   slug: string;
   icon_url: string | null;
   short_description: string | null;
-  products: { id: string; name: string; slug: string }[];
+  products: { id: string; name: string; slug: string; images: string[] }[];
 }
 
 export interface City {
