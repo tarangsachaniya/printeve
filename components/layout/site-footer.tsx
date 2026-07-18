@@ -13,7 +13,7 @@ const defaultSupportLinks = [
   { href: "/contact", label: "Contact Us" },
   { href: "/track-order", label: "Track Order" },
   { href: "/account/orders", label: "My Orders" },
-  { href: "/faq", label: "FAQs" },
+  { href: "/account/help", label: "FAQs" },
   { href: "/about", label: "About Us" },
 ];
 

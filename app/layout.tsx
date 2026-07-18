@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { BuyNowProvider } from "@/lib/buy-now";
 import { CityProvider } from "@/lib/city";
+import { ThemeProvider } from "@/lib/theme-provider";
 import { CityPickerDialog } from "@/components/layout/city-picker-dialog";
 
 const inter = Inter({
@@ -26,19 +27,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-text">
-        <AuthProvider>
-          <CartProvider>
-            <BuyNowProvider>
-              <CityProvider>
-                {children}
-                <CityPickerDialog />
-                <Toaster position="top-right" richColors closeButton />
-              </CityProvider>
-            </BuyNowProvider>
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <BuyNowProvider>
+                <CityProvider>
+                  {children}
+                  <CityPickerDialog />
+                  <Toaster position="top-right" richColors closeButton />
+                </CityProvider>
+              </BuyNowProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

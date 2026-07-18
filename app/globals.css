@@ -50,6 +50,43 @@
   to { transform: translateX(-50%); }
 }
 
+/* ── Dark theme ──
+   Tailwind v4's @theme vars are plain CSS custom properties under the hood,
+   so redefining them here cascades to every utility class that already
+   consumes var(--color-*) — no per-component dark: variants needed. */
+[data-theme="dark"] {
+  --color-primary: #22C55E;
+  --color-primary-hover: #4ADE80;
+  --color-primary-active: #16A34A;
+  --color-primary-foreground: #052e16;
+  --color-primary-soft: #14532D;
+  --color-primary-soft-fg: #86EFAC;
+
+  --color-secondary: #22C55E;
+  --color-secondary-hover: #4ADE80;
+  --color-secondary-foreground: #052e16;
+
+  --color-accent: #14532D;
+  --color-accent-hover: #166534;
+  --color-accent-foreground: #86EFAC;
+
+  --color-background: #0B0F0D;
+  --color-surface: #151A17;
+  --color-text: #ECFDF3;
+  --color-text-muted: #8FA396;
+  --color-border: #232B26;
+
+  --color-danger: #F87171;
+  --color-warning: #FBBF24;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.24), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 8px 24px -4px rgb(0 0 0 / 0.4), 0 2px 8px -2px rgb(0 0 0 / 0.3);
+  --shadow-brand: 0 8px 24px -6px rgb(34 197 94 / 0.45);
+
+  --gradient-hero: radial-gradient(60% 80% at 80% 0%, rgb(20 83 45 / 0.4) 0%, transparent 60%), linear-gradient(180deg, #0F1712 0%, #0B0F0D 55%);
+  --gradient-brand: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+}
+
 html {
   scroll-behavior: smooth;
 }

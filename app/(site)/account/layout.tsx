@@ -1,24 +1,13 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Lock, Package, MapPin, Palette, User, Settings } from "lucide-react";
+import { Lock } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { IconChip } from "@/components/ui/icon-chip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AuthModal } from "@/components/auth/auth-modal";
-
-const NAV_ITEMS = [
-  { href: "/account/orders", label: "Orders", icon: Package },
-  { href: "/account/addresses", label: "Addresses", icon: MapPin },
-  { href: "/account/designs", label: "Saved Designs", icon: Palette },
-  { href: "/account/profile", label: "Profile", icon: User },
-  { href: "/account/settings", label: "Settings", icon: Settings },
-];
+import { SettingsSidebar } from "@/components/account/settings-sidebar";
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<"loading" | "authed" | "guest">("loading");
@@ -38,21 +27,20 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   if (status === "loading") {
     return (
-      <div className="mx-auto max-w-5xl container-px py-10 lg:py-14">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
-          <div className="h-fit overflow-hidden rounded-2xl border border-border bg-background divide-y divide-border">
-            {NAV_ITEMS.map((item) => (
-              <div key={item.href} className="flex items-center gap-3 px-4 py-3">
-                <Skeleton className="size-8 rounded-full" />
-                <Skeleton className="h-4 w-20" />
+      <div className="mx-auto max-w-6xl container-px py-10 lg:py-14">
+        <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="hidden w-60 shrink-0 flex-col gap-3 lg:flex">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                <Skeleton className="size-8 rounded-xl" />
+                <Skeleton className="h-4 w-24" />
               </div>
             ))}
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-1 flex-col gap-4">
             <Skeleton className="h-8 w-40" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
           </div>
         </div>
       </div>
@@ -77,37 +65,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     );
   }
 
-  return <AccountShell>{children}</AccountShell>;
-}
-
-function AccountShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-
   return (
-    <div className="mx-auto max-w-5xl container-px py-10 lg:py-14">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
-        <nav className="h-fit overflow-hidden rounded-2xl border border-border bg-background divide-y divide-border">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
-                  isActive ? "bg-primary/5 text-primary" : "text-text hover:bg-surface"
-                )}
-              >
-                <IconChip size="sm" className={cn(!isActive && "bg-surface text-text-muted")}>
-                  <Icon className="size-4" />
-                </IconChip>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div>{children}</div>
+    <div className="mx-auto max-w-6xl container-px py-8 lg:py-14">
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
+        <SettingsSidebar />
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>
   );

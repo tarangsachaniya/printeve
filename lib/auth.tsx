@@ -13,6 +13,8 @@ interface AuthContextValue {
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string) => Promise<void>;
   refresh: () => Promise<void>;
+  /** Merges a partial patch into the cached user (e.g. after a profile save) so header/menus stay in sync without a full refetch. */
+  updateUser: (patch: Partial<User>) => void;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -60,9 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await api.post("/auth/reset-password", { token, password });
   }, []);
 
+  const updateUser = React.useCallback((patch: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   const value = React.useMemo(
-    () => ({ user, loading, login, register, logout, forgotPassword, resetPassword, refresh }),
-    [user, loading, login, register, logout, forgotPassword, resetPassword, refresh]
+    () => ({ user, loading, login, register, logout, forgotPassword, resetPassword, refresh, updateUser }),
+    [user, loading, login, register, logout, forgotPassword, resetPassword, refresh, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

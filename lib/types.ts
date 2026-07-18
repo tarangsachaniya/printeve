@@ -130,8 +130,14 @@ export interface User {
   fullName: string;
   email: string;
   phone?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
+  company?: string | null;
+  gstNumber?: string | null;
+  orderNotifications?: boolean;
+  promotionalNotifications?: boolean;
 }
+
+export type AddressLabel = "Home" | "Work" | "Hotel" | "Other";
 
 export interface Address {
   id: string;
@@ -144,6 +150,8 @@ export interface Address {
   state: string;
   pincode: string;
   isDefault?: boolean;
+  /** Receiver is the account holder — auto-fills name/phone and stays in sync. */
+  isSelf?: boolean;
   houseNumber?: string | null;
   floor?: string | null;
   towerBlock?: string | null;
@@ -152,6 +160,7 @@ export interface Address {
   /** Customer-provided delivery coordinates, used for printer radius matching. */
   latitude?: number | null;
   longitude?: number | null;
+  notes?: string | null;
 }
 
 export type DimensionUnit = "mm" | "cm" | "in";

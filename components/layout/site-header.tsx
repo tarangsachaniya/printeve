@@ -4,12 +4,11 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, User, Menu, X, ChevronDown, MapPin, Settings, LogOut, UserCircle, Package, Layers, ShoppingCart } from "lucide-react";
+import { Search, User, Menu, X, ChevronDown, MapPin, ShieldCheck, LogOut, UserCircle, Package, Layers, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCity } from "@/lib/city";
 import { useCart } from "@/lib/cart";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { AccountModal } from "@/components/auth/account-modal";
 import { SearchModal } from "./search-modal";
 import { cn } from "@/lib/utils";
 import type { SiteConfig } from "@/lib/site-config";
@@ -36,18 +35,10 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
   const [authOpen, setAuthOpen] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
-  const [accountOpen, setAccountOpen] = React.useState(false);
-  const [accountTab, setAccountTab] = React.useState<"profile" | "addresses" | "settings">("profile");
   const { user, logout } = useAuth();
   const { cityName, openPicker } = useCity();
   const { itemCount } = useCart();
   const router = useRouter();
-
-  function openAccountModal(tab: "profile" | "addresses" | "settings") {
-    setUserMenuOpen(false);
-    setAccountTab(tab);
-    setAccountOpen(true);
-  }
 
   async function handleSignOut() {
     setUserMenuOpen(false);
@@ -231,27 +222,27 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
                     <Package className="size-4" /> Orders
                   </Link>
                   <div className="my-1 border-t border-border" />
-                  <button
-                    type="button"
-                    onClick={() => openAccountModal("profile")}
+                  <Link
+                    href="/account/profile"
+                    onClick={() => setUserMenuOpen(false)}
                     className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface"
                   >
                     <UserCircle className="size-4" /> Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openAccountModal("addresses")}
+                  </Link>
+                  <Link
+                    href="/account/addresses"
+                    onClick={() => setUserMenuOpen(false)}
                     className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface"
                   >
                     <MapPin className="size-4" /> Addresses
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openAccountModal("settings")}
+                  </Link>
+                  <Link
+                    href="/account/security"
+                    onClick={() => setUserMenuOpen(false)}
                     className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface"
                   >
-                    <Settings className="size-4" /> Settings
-                  </button>
+                    <ShieldCheck className="size-4" /> Security
+                  </Link>
                   <div className="my-1 border-t border-border" />
                   <button
                     type="button"
@@ -349,7 +340,6 @@ export function SiteHeader({ siteConfig, categories = [] }: SiteHeaderProps) {
       )}
 
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
-      <AccountModal open={accountOpen} onOpenChange={setAccountOpen} defaultTab={accountTab} />
       <SearchModal open={searchOpen} onOpenChange={setSearchOpen} categories={categories} />
     </header>
   );
