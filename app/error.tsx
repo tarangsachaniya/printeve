@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function Error({
   error,
@@ -9,8 +9,23 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const reported = useRef(false);
+
   useEffect(() => {
     console.error(error);
+    if (reported.current) return;
+    reported.current = true;
+    fetch("/api/log-error", {
+      method: "POST",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        digest: error.digest,
+        path: window.location.pathname,
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (
