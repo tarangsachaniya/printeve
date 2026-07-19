@@ -116,7 +116,7 @@ export function SiteFooter({ siteConfig, categories = [] }: { siteConfig?: SiteC
 
         <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
           <p className="text-xs text-text-muted">
-            &copy; {new Date().getFullYear()} Priinteve. All rights reserved.
+            &copy; {new Date().getFullYear()} Priinteve Innovations. All rights reserved.
           </p>
           <div className="flex gap-5 text-xs text-text-muted">
             {(policyLinks.length > 0 ? policyLinks : [
