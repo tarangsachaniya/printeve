@@ -48,6 +48,16 @@ export interface CmsFooterGroup {
   links: { id: string; label: string; href: string; sort_order: number }[]
 }
 
+export interface HomepageSection {
+  id: string
+  key: string
+  title: string | null
+  layout: string
+  settings: Record<string, unknown>
+  is_active: boolean
+  sort_order: number
+}
+
 export interface PricingConfig {
   cgst_percent: number
   sgst_percent: number
@@ -73,6 +83,7 @@ export interface SiteConfig {
   footer: CmsFooterGroup[]
   pages: Record<string, CmsPage>
   pricingConfig: PricingConfig
+  homepageSections: HomepageSection[]
 }
 
 let fallbackConfig: SiteConfig | null = null
@@ -88,11 +99,15 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     return data
   } catch {
     if (fallbackConfig) return fallbackConfig
-    return { version: '0', settings: {}, navbar: {}, footer: [], pages: {}, pricingConfig: DEFAULT_PRICING_CONFIG }
+    return { version: '0', settings: {}, navbar: {}, footer: [], pages: {}, pricingConfig: DEFAULT_PRICING_CONFIG, homepageSections: [] }
   }
 }
 
 export function getPageSections(page: CmsPage | undefined): Record<string, CmsSection> {
   if (!page) return {}
   return Object.fromEntries(page.sections.map(s => [s.key, s]))
+}
+
+export function getHomepageSections(config: SiteConfig): Record<string, HomepageSection> {
+  return Object.fromEntries((config.homepageSections ?? []).map(s => [s.key, s]))
 }

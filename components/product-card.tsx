@@ -16,6 +16,11 @@ export function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           className="transition-transform duration-300 group-hover:scale-105"
         />
+        {!!product.discount_percent && (
+          <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-white shadow">
+            {product.discount_percent}% off
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <h3 className="text-sm font-semibold text-text line-clamp-1">{product.name}</h3>
@@ -31,6 +36,9 @@ export function ProductCard({ product }: { product: Product }) {
             View <ArrowRight className="size-4" />
           </span>
         </div>
+        {product.delivers_to_city === true && (
+          <p className="mt-1.5 text-xs font-medium text-primary">Delivers to your city</p>
+        )}
       </div>
     </Link>
   );

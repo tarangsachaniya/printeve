@@ -51,6 +51,9 @@ export interface Product {
   options: ProductOption[];
   available_quantities: number[];
   starting_price: number | null;
+  compare_at_price?: number | null;
+  discount_percent?: number | null;
+  delivers_to_city?: boolean | null;
   pricing_matrix: PricingMatrixRow[];
   faqs: FAQ[];
   finish_and_care: string[];
@@ -72,8 +75,69 @@ export interface Category {
   title: string;
   slug: string;
   icon_url: string | null;
+  image_url: string | null;
   short_description: string | null;
   products: { id: string; name: string; slug: string; images: string[] }[];
+}
+
+export type RedirectType = "none" | "product" | "category" | "url" | "screen";
+
+export interface StorySlide {
+  id: string;
+  media_type: "image" | "video";
+  media_url: string;
+  duration_seconds: number;
+  redirect_type: RedirectType;
+  redirect_value: string | null;
+}
+
+export interface Story {
+  id: string;
+  title: string;
+  cover_image_url: string | null;
+  category_id?: string | null;
+  product_id?: string | null;
+  slides: StorySlide[];
+}
+
+export interface Campaign {
+  id: string;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string;
+  cta_label: string | null;
+  redirect_type: RedirectType;
+  redirect_value: string | null;
+}
+
+export type FeaturedItem =
+  | { id: string; type: "product"; sort_order: number; product: Product }
+  | { id: string; type: "category"; sort_order: number; category: Category }
+  | { id: string; type: "offer"; sort_order: number; offer: { id: string; code: string; discount_type: "percentage" | "fixed"; discount_value: number; end_date: string } }
+  | { id: string; type: "campaign"; sort_order: number; campaign: Campaign };
+
+export interface CouponPromotion {
+  id: string;
+  title: string;
+  image_url: string;
+  store_name: string | null;
+  store_logo_url: string | null;
+  category: { id: string; title: string; slug: string } | null;
+  is_featured: boolean;
+  coupon: {
+    id: string;
+    code: string;
+    discount_type: "percentage" | "fixed";
+    discount_value: number;
+    max_discount_cap: number | null;
+    minimum_purchase_amount: number | null;
+    end_date: string;
+  };
+}
+
+export interface CouponPromotionListResponse {
+  items: CouponPromotion[];
+  total: number;
 }
 
 export interface City {
