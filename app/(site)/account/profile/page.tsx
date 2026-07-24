@@ -6,14 +6,13 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { isValidEmail, isValidIndianPhone } from "@/lib/utils";
+import { GST_NUMBER_REGEX } from "@/lib/gst";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AvatarUpload } from "@/components/account/avatar-upload";
 import { SettingsSection, PageHeading } from "@/components/account/settings-section";
-
-const GST_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 interface ProfileForm {
   fullName: string;
@@ -75,7 +74,7 @@ export default function ProfilePage() {
     if (!form.fullName.trim()) next.fullName = "Enter your name.";
     if (!isValidEmail(form.email)) next.email = "Enter a valid email address.";
     if (!isValidIndianPhone(form.phone)) next.phone = "Enter a valid 10-digit mobile number.";
-    if (form.gstNumber && !GST_RE.test(form.gstNumber.toUpperCase())) {
+    if (form.gstNumber && !GST_NUMBER_REGEX.test(form.gstNumber.toUpperCase())) {
       next.gstNumber = "Format looks off — e.g. 29ABCDE1234F1Z5.";
     }
     setErrors(next);

@@ -152,6 +152,32 @@ export type OrderStatus =
 
 export type OrderPaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
+export interface OrderAddress {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+  houseNumber: string | null;
+  floor: string | null;
+  towerBlock: string | null;
+  landmark: string | null;
+}
+
+export interface OrderItemDetail {
+  id: string;
+  productType: string;
+  productName: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  selectedOptions: { option_label: string; value_label: string; field_option_value_id: string }[];
+}
+
 export interface Order {
   id: string;
   customerId: string;
@@ -163,7 +189,22 @@ export interface Order {
   discountAmount: number;
   total: number;
   paymentStatus: OrderPaymentStatus;
+  paymentMethod: string | null;
   createdAt: string;
+  expectedDeliveryAt: string | null;
+  invoiceNumber: string | null;
+  invoiceGeneratedAt: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  hasGst: boolean;
+  gstNumber: string | null;
+  companyName: string | null;
+  placeOfSupply: string | null;
+  stateCode: string | null;
+  shippingAddress: OrderAddress | null;
+  billingAddress: OrderAddress | null;
+  items: OrderItemDetail[];
 }
 
 export interface OrderItem {
@@ -181,6 +222,14 @@ export interface OrderStatusHistory {
   newStatus: OrderStatus;
   changedBy: string;
   timestamp: string;
+}
+
+export interface OrderTracking {
+  orderId: string;
+  status: OrderStatus;
+  updatedAt: string | null;
+  etaMinutes: number | null;
+  history: { status: OrderStatus; updatedAt: string }[];
 }
 
 export interface User {

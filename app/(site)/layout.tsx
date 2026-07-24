@@ -16,7 +16,7 @@ export default async function SiteLayout({
   ]);
 
   return (
-    <SiteSettingsProvider settings={config.settings} pricingConfig={config.pricingConfig}>
+    <SiteSettingsProvider settings={config.settings} pricingConfig={config.pricingConfig} letterheadConfig={config.letterheadConfig}>
       <SiteHeader siteConfig={config} categories={categories} />
       <main className="flex-1">{children}</main>
       <SiteFooter siteConfig={config} categories={categories} />

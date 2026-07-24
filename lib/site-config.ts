@@ -76,6 +76,60 @@ const DEFAULT_PRICING_CONFIG: PricingConfig = {
   platform_fee_value: 0,
 }
 
+export interface LetterheadConfig {
+  logo_url: string
+  company_name: string
+  tagline: string
+  address_line1: string
+  address_line2: string
+  city: string
+  state: string
+  pincode: string
+  phone_primary: string
+  phone_secondary: string
+  email: string
+  website: string
+  gst_number: string
+  pan_number: string
+  cin_number: string
+  signature_url: string
+  signature_name: string
+  signature_designation: string
+  footer_text: string
+  terms_and_conditions: string
+  bank_details_text: string
+  qr_code_url: string
+  watermark_url: string
+  watermark_opacity: number
+}
+
+const DEFAULT_LETTERHEAD_CONFIG: LetterheadConfig = {
+  logo_url: '',
+  company_name: 'Priinteve Innovations',
+  tagline: '',
+  address_line1: '',
+  address_line2: '',
+  city: '',
+  state: '',
+  pincode: '',
+  phone_primary: '',
+  phone_secondary: '',
+  email: '',
+  website: '',
+  gst_number: '',
+  pan_number: '',
+  cin_number: '',
+  signature_url: '',
+  signature_name: '',
+  signature_designation: '',
+  footer_text: '',
+  terms_and_conditions: '',
+  bank_details_text: '',
+  qr_code_url: '',
+  watermark_url: '',
+  watermark_opacity: 0.06,
+}
+
 export interface SiteConfig {
   version: string
   settings: Record<string, string | null>
@@ -83,6 +137,7 @@ export interface SiteConfig {
   footer: CmsFooterGroup[]
   pages: Record<string, CmsPage>
   pricingConfig: PricingConfig
+  letterheadConfig: LetterheadConfig
   homepageSections: HomepageSection[]
 }
 
@@ -99,7 +154,10 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     return data
   } catch {
     if (fallbackConfig) return fallbackConfig
-    return { version: '0', settings: {}, navbar: {}, footer: [], pages: {}, pricingConfig: DEFAULT_PRICING_CONFIG, homepageSections: [] }
+    return {
+      version: '0', settings: {}, navbar: {}, footer: [], pages: {},
+      pricingConfig: DEFAULT_PRICING_CONFIG, letterheadConfig: DEFAULT_LETTERHEAD_CONFIG, homepageSections: [],
+    }
   }
 }
 

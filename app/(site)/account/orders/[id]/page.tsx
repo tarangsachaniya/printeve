@@ -3,32 +3,39 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, CheckCircle2, Circle, PackageX, AlertTriangle, Download } from "lucide-react";
+import { ChevronLeft, PackageX, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
-import { getOrderById } from "@/lib/orders";
-import { usePricingConfig } from "@/lib/site-settings";
-import { downloadServiceBillPdf, downloadPlatformFeeBillPdf } from "@/lib/invoice-pdf";
-import type { Order, OrderStatus } from "@/lib/types";
-import { formatPrice, cn } from "@/lib/utils";
+import { getOrderById, getOrderTracking } from "@/lib/orders";
+import { usePricingConfig, useLetterheadConfig } from "@/lib/site-settings";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import type { Order, OrderTracking } from "@/lib/types";
+import { formatPrice } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OrderStatusTimeline } from "@/components/account/order-status-timeline";
 
-const TIMELINE_STEPS: { status: OrderStatus; label: string }[] = [
-  { status: "pending", label: "Order Placed" },
-  { status: "confirmed", label: "Confirmed" },
-  { status: "printing", label: "Printing" },
-  { status: "out_for_delivery", label: "Out for Delivery" },
-  { status: "delivered", label: "Delivered" },
-];
+function formatAddress(address: NonNullable<Order["shippingAddress"]>): string {
+  const parts = [
+    [address.houseNumber, address.floor, address.towerBlock].filter(Boolean).join(", "),
+    address.line1,
+    address.line2,
+    address.landmark ? `Near ${address.landmark}` : null,
+    `${address.city}, ${address.state} ${address.pincode}`,
+  ].filter(Boolean);
+  return parts.join(", ");
+}
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const pricingConfig = usePricingConfig();
+  const letterheadConfig = useLetterheadConfig();
   const [order, setOrder] = React.useState<Order | null | undefined>(undefined);
+  const [tracking, setTracking] = React.useState<OrderTracking | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [downloading, setDownloading] = React.useState(false);
 
   React.useEffect(() => {
     getOrderById(params.id)
@@ -43,6 +50,9 @@ export default function OrderDetailPage() {
           setOrder(null);
         }
       });
+    getOrderTracking(params.id)
+      .then(setTracking)
+      .catch(() => setTracking(null));
   }, [params.id]);
 
   if (order === undefined) {
@@ -79,10 +89,6 @@ export default function OrderDetailPage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-            <Skeleton className="h-9 w-40" />
-            <Skeleton className="h-9 w-40" />
-          </div>
         </Card>
       </div>
     );
@@ -112,7 +118,9 @@ export default function OrderDetailPage() {
   }
 
   const isCancelled = order.status === "cancelled";
-  const currentIdx = TIMELINE_STEPS.findIndex((s) => s.status === order.status);
+  const shippingAddress = order.shippingAddress;
+  const billingAddress = order.billingAddress;
+  const billingSameAsShipping = !billingAddress || !shippingAddress || billingAddress.id === shippingAddress.id;
 
   // CGST/SGST are global, site-wide rates (not stored per order) — computed here
   // from the order's net subtotal using the current live rates.
@@ -120,6 +128,17 @@ export default function OrderDetailPage() {
   const cgstAmount = Math.round(((netSubtotal * pricingConfig.cgst_percent) / 100) * 100) / 100;
   const sgstAmount = Math.round(((netSubtotal * pricingConfig.sgst_percent) / 100) * 100) / 100;
   const serviceTotal = netSubtotal + cgstAmount + sgstAmount;
+
+  async function handleDownloadInvoice() {
+    setDownloading(true);
+    try {
+      await downloadInvoicePdf(order!, letterheadConfig);
+    } catch {
+      toast.error("Failed to generate invoice.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,28 +153,78 @@ export default function OrderDetailPage() {
           </Badge>
         </div>
         <p className="text-sm text-text-muted">Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
+        {order.invoiceNumber && <p className="text-xs text-text-muted">Invoice {order.invoiceNumber}</p>}
       </div>
 
       {!isCancelled && (
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-text">Status</h3>
-          <ol className="mt-4 flex flex-col gap-4">
-            {TIMELINE_STEPS.map((step, idx) => {
-              const done = idx <= currentIdx;
-              return (
-                <li key={step.status} className="flex items-center gap-3">
-                  {done ? (
-                    <CheckCircle2 className="size-5 text-primary" />
-                  ) : (
-                    <Circle className="size-5 text-border" />
+          <div className="mt-4">
+            <OrderStatusTimeline currentStatus={order.status} history={tracking?.history} />
+          </div>
+        </Card>
+      )}
+
+      {(order.customerName || order.customerPhone) && (
+        <Card className="p-5">
+          <h3 className="text-sm font-semibold text-text">Customer Details</h3>
+          <div className="mt-2 text-sm text-text-muted">
+            {order.customerName && <p className="text-text">{order.customerName}</p>}
+            {order.customerPhone && <p>{order.customerPhone}</p>}
+            {order.customerEmail && <p>{order.customerEmail}</p>}
+            {order.hasGst && order.gstNumber && (
+              <div className="mt-2 border-t border-border pt-2">
+                {order.companyName && <p className="text-text">{order.companyName}</p>}
+                <p>GSTIN: {order.gstNumber}</p>
+                {order.placeOfSupply && (
+                  <p>Place of Supply: {order.placeOfSupply}{order.stateCode ? ` (${order.stateCode})` : ""}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {(shippingAddress || billingAddress) && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {shippingAddress && (
+            <Card className="p-5">
+              <h3 className="text-sm font-semibold text-text">Shipping Address</h3>
+              <p className="mt-2 text-sm font-medium text-text">{shippingAddress.fullName}</p>
+              <p className="text-sm text-text-muted">{formatAddress(shippingAddress)}</p>
+              <p className="text-sm text-text-muted">{shippingAddress.phone}</p>
+            </Card>
+          )}
+          {billingAddress && !billingSameAsShipping && (
+            <Card className="p-5">
+              <h3 className="text-sm font-semibold text-text">Billing Address</h3>
+              <p className="mt-2 text-sm font-medium text-text">{billingAddress.fullName}</p>
+              <p className="text-sm text-text-muted">{formatAddress(billingAddress)}</p>
+              <p className="text-sm text-text-muted">{billingAddress.phone}</p>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {order.items.length > 0 && (
+        <Card className="p-5">
+          <h3 className="text-sm font-semibold text-text">Items</h3>
+          <div className="mt-3 flex flex-col gap-3">
+            {order.items.map((item) => (
+              <div key={item.id} className="flex items-start justify-between gap-4 border-b border-border pb-3 text-sm last:border-0 last:pb-0">
+                <div>
+                  <p className="font-medium text-text">{item.productName ?? item.productType} × {item.quantity}</p>
+                  {item.selectedOptions.length > 0 && (
+                    <p className="text-xs text-text-muted">
+                      {item.selectedOptions.map((o) => `${o.option_label}: ${o.value_label}`).join(" · ")}
+                    </p>
                   )}
-                  <span className={cn("text-sm", done ? "font-medium text-text" : "text-text-muted")}>
-                    {step.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+                  <p className="text-xs text-text-muted">{formatPrice(item.unitPrice)} each</p>
+                </div>
+                <p className="font-semibold text-text">{formatPrice(item.totalPrice)}</p>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
@@ -212,43 +281,19 @@ export default function OrderDetailPage() {
             <dt className="text-text-muted">Payment Status</dt>
             <dd className="capitalize text-text">{order.paymentStatus}</dd>
           </div>
+          {order.paymentMethod && (
+            <div className="flex justify-between pt-1">
+              <dt className="text-text-muted">Payment Method</dt>
+              <dd className="text-text">{order.paymentMethod}</dd>
+            </div>
+          )}
         </dl>
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              downloadServiceBillPdf({
-                orderId: order.id,
-                createdAt: order.createdAt,
-                subtotal: order.subtotal,
-                discountAmount: order.discountAmount,
-                cgstPercent: pricingConfig.cgst_percent,
-                sgstPercent: pricingConfig.sgst_percent,
-                cgstAmount,
-                sgstAmount,
-                serviceTotal,
-              })
-            }
-          >
-            <Download className="size-3.5" /> Service Bill (PDF)
+          <Button variant="outline" size="sm" onClick={handleDownloadInvoice} disabled={downloading}>
+            {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            Download Invoice
           </Button>
-          {order.platformFee > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                downloadPlatformFeeBillPdf({
-                  orderId: order.id,
-                  createdAt: order.createdAt,
-                  platformFee: order.platformFee,
-                })
-              }
-            >
-              <Download className="size-3.5" /> Platform Fee Bill (PDF)
-            </Button>
-          )}
         </div>
       </Card>
     </div>

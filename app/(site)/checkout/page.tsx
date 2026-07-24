@@ -14,6 +14,7 @@ import { validateCoupon, type CouponValidationResult } from "@/lib/coupons";
 import { useSiteSettings, usePricingConfig } from "@/lib/site-settings";
 import { computeOrderBill } from "@/lib/pricing";
 import { formatPrice, cn, isValidIndianPhone } from "@/lib/utils";
+import { isValidGstNumber } from "@/lib/gst";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -105,6 +106,12 @@ function CheckoutForm() {
   });
   const [savingAddress, setSavingAddress] = React.useState(false);
 
+  const [hasGst, setHasGst] = React.useState(false);
+  const [gstNumber, setGstNumber] = React.useState("");
+  const [companyName, setCompanyName] = React.useState("");
+  const [billingSameAsShipping, setBillingSameAsShipping] = React.useState(true);
+  const [billingAddressId, setBillingAddressId] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     api
       .get<Address[]>("/account/addresses")
@@ -194,6 +201,12 @@ function CheckoutForm() {
     setAddress((prev) => ({ ...prev, [key]: value }));
   }
 
+  const gstValid =
+    !hasGst ||
+    (isValidGstNumber(gstNumber) &&
+      companyName.trim().length > 0 &&
+      (billingSameAsShipping || !!billingAddressId));
+
   async function ensureAddressId(): Promise<string> {
     if (selectedAddressId) return selectedAddressId;
     const created = await api.post<Address>("/account/addresses", {
@@ -250,6 +263,15 @@ function CheckoutForm() {
         })),
         addressId,
         couponCode: appliedCoupon?.coupon.code,
+        paymentMethod: "Razorpay",
+        gstDetails: hasGst
+          ? {
+              hasGst: true,
+              gstNumber: gstNumber.toUpperCase(),
+              companyName,
+              billingAddressId: billingSameAsShipping ? addressId : billingAddressId ?? addressId,
+            }
+          : undefined,
       };
 
       await createOrder(payload);
@@ -504,7 +526,85 @@ function CheckoutForm() {
                 </div>
               )}
 
-              <Button size="lg" className="mt-6" disabled={!addressValid} onClick={() => setStep("review")}>
+              <div className="mt-6 border-t border-border pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-text">Do you have GST?</p>
+                    <p className="text-xs text-text-muted">Add your GSTIN to get a business invoice.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={hasGst}
+                    onClick={() => setHasGst((v) => !v)}
+                    className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", hasGst ? "bg-primary" : "bg-border")}
+                  >
+                    <span className={cn("absolute left-0.5 top-0.5 size-5 rounded-full bg-white transition-transform", hasGst && "translate-x-5")} />
+                  </button>
+                </div>
+
+                {hasGst && (
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="mb-1.5 block" htmlFor="gstNumber">GSTIN</Label>
+                      <Input
+                        id="gstNumber"
+                        value={gstNumber}
+                        onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                        placeholder="29ABCDE1234F1Z5"
+                      />
+                      {gstNumber && !isValidGstNumber(gstNumber) && (
+                        <p className="mt-1 text-xs text-danger">Invalid GST number format.</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block" htmlFor="companyName">Company Name</Label>
+                      <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Business name" />
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:col-span-2">
+                      <input
+                        id="billingSame"
+                        type="checkbox"
+                        checked={billingSameAsShipping}
+                        onChange={(e) => setBillingSameAsShipping(e.target.checked)}
+                        className="size-4 rounded border-border"
+                      />
+                      <Label htmlFor="billingSame" className="!mb-0">Billing address is the same as shipping</Label>
+                    </div>
+
+                    {!billingSameAsShipping && (
+                      <div className="sm:col-span-2">
+                        {usingSavedAddresses ? (
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {savedAddresses!.map((a) => {
+                              const isSelected = a.id === billingAddressId;
+                              return (
+                                <button
+                                  key={a.id}
+                                  type="button"
+                                  onClick={() => setBillingAddressId(a.id)}
+                                  className={cn("flex flex-col gap-1 p-4 text-left", selectableCardClasses(isSelected))}
+                                >
+                                  <span className="text-sm font-semibold text-text">{a.label}</span>
+                                  <p className="text-sm text-text-muted">
+                                    {a.line1}
+                                    {a.line2 ? `, ${a.line2}` : ""}, {a.city}, {a.state} {a.pincode}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-text-muted">Save an address above first, then pick it here as the billing address.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <Button size="lg" className="mt-6" disabled={!addressValid || !gstValid} onClick={() => setStep("review")}>
                 Continue to Review
               </Button>
             </Card>
