@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { getOrderById, getOrderTracking } from "@/lib/orders";
 import { usePricingConfig, useLetterheadConfig } from "@/lib/site-settings";
-import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { downloadTaxInvoicePdf, downloadPlatformFeeInvoicePdf } from "@/lib/invoice-pdf";
 import type { Order, OrderTracking } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -35,7 +35,8 @@ export default function OrderDetailPage() {
   const [order, setOrder] = React.useState<Order | null | undefined>(undefined);
   const [tracking, setTracking] = React.useState<OrderTracking | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [downloading, setDownloading] = React.useState(false);
+  const [downloadingTax, setDownloadingTax] = React.useState(false);
+  const [downloadingPlatformFee, setDownloadingPlatformFee] = React.useState(false);
 
   React.useEffect(() => {
     getOrderById(params.id)
@@ -129,14 +130,30 @@ export default function OrderDetailPage() {
   const sgstAmount = Math.round(((netSubtotal * pricingConfig.sgst_percent) / 100) * 100) / 100;
   const serviceTotal = netSubtotal + cgstAmount + sgstAmount;
 
-  async function handleDownloadInvoice() {
-    setDownloading(true);
+  async function handleDownloadTaxInvoice() {
+    setDownloadingTax(true);
     try {
-      await downloadInvoicePdf(order!, letterheadConfig);
+      await downloadTaxInvoicePdf(order!, letterheadConfig, {
+        cgstPercent: pricingConfig.cgst_percent,
+        sgstPercent: pricingConfig.sgst_percent,
+        cgstAmount,
+        sgstAmount,
+      });
     } catch {
       toast.error("Failed to generate invoice.");
     } finally {
-      setDownloading(false);
+      setDownloadingTax(false);
+    }
+  }
+
+  async function handleDownloadPlatformFeeInvoice() {
+    setDownloadingPlatformFee(true);
+    try {
+      await downloadPlatformFeeInvoicePdf(order!, letterheadConfig);
+    } catch {
+      toast.error("Failed to generate invoice.");
+    } finally {
+      setDownloadingPlatformFee(false);
     }
   }
 
@@ -290,10 +307,16 @@ export default function OrderDetailPage() {
         </dl>
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-          <Button variant="outline" size="sm" onClick={handleDownloadInvoice} disabled={downloading}>
-            {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-            Download Invoice
+          <Button variant="outline" size="sm" onClick={handleDownloadTaxInvoice} disabled={downloadingTax}>
+            {downloadingTax ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            Tax Invoice (PDF)
           </Button>
+          {order.platformFee > 0 && (
+            <Button variant="outline" size="sm" onClick={handleDownloadPlatformFeeInvoice} disabled={downloadingPlatformFee}>
+              {downloadingPlatformFee ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+              Platform Fee Invoice (PDF)
+            </Button>
+          )}
         </div>
       </Card>
     </div>

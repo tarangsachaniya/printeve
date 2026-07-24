@@ -5,7 +5,16 @@ import type { Order, OrderAddress } from "./types";
 
 const MARGIN = 14;
 const PAGE_WIDTH = 210;
+const PAGE_HEIGHT = 297;
 const RIGHT = PAGE_WIDTH - MARGIN;
+// Footer (bank/T&C, signature, footer text, computer-generated note) always
+// starts at this fixed y so it reads as a proper reserved section instead of
+// being crammed against whatever the content happened to end at.
+const FOOTER_ZONE_TOP = 245;
+const FOOTER_TEXT_Y = 285;
+const GENERATED_NOTE_Y = 291;
+// Content above this triggers a page break rather than overflowing into the footer zone.
+const ITEMS_BREAK_Y = 230;
 
 interface ImageInfo {
   dataUrl: string;
@@ -54,29 +63,19 @@ function formatAddressLines(address: OrderAddress): string[] {
   ].filter(Boolean) as string[];
 }
 
-/**
- * Full Indian tax-invoice PDF, sourced entirely from the order snapshot
- * (Phase 1-3) and the site-wide Letterhead Configuration (Phase 4) — no
- * hardcoded company/customer values. Uses jsPDF (already a dependency).
- */
-export async function downloadInvoicePdf(order: Order, letterhead: LetterheadConfig): Promise<void> {
-  const [logo, signature, watermark] = await Promise.all([
-    loadImage(letterhead.logo_url),
-    loadImage(letterhead.signature_url),
-    loadImage(letterhead.watermark_url),
-  ]);
+/** Opacity-scoped watermark draw, using jsPDF's documented save/restore graphics-state pattern. */
+function drawWatermark(doc: jsPDF, watermark: ImageInfo | null, opacity: number) {
+  if (!watermark) return;
+  doc.saveGraphicsState();
+  doc.setGState(new GState({ opacity }));
+  const w = 100;
+  const h = (watermark.height / watermark.width) * w;
+  doc.addImage(watermark.dataUrl, (PAGE_WIDTH - w) / 2, (PAGE_HEIGHT - h) / 2, w, h);
+  doc.restoreGraphicsState();
+}
 
-  const doc = new jsPDF();
-  const orderShort = order.id.slice(0, 8).toUpperCase();
-
-  if (watermark) {
-    doc.setGState(new GState({ opacity: letterhead.watermark_opacity }));
-    const w = 100;
-    const h = (watermark.height / watermark.width) * w;
-    doc.addImage(watermark.dataUrl, (PAGE_WIDTH - w) / 2, (297 - h) / 2, w, h);
-    doc.setGState(new GState({ opacity: 1 }));
-  }
-
+/** Company letterhead block (left) + title + invoice-meta block (right). Returns the y position below both. */
+function drawHeader(doc: jsPDF, letterhead: LetterheadConfig, logo: ImageInfo | null, title: string, metaLines: string[]): number {
   let y = 18;
   let textX = MARGIN;
   if (logo) {
@@ -101,31 +100,22 @@ export async function downloadInvoicePdf(order: Order, letterhead: LetterheadCon
   if (letterhead.email) { doc.text(letterhead.email, textX, leftY); leftY += 4; }
   if (letterhead.website) { doc.text(letterhead.website, textX, leftY); leftY += 4; }
 
-  let rightY = 18;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("TAX INVOICE", RIGHT, rightY, { align: "right" });
+  doc.text(title, RIGHT, y, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  rightY += 6;
-  const rightLines = [
-    `Invoice #: ${order.invoiceNumber ?? "—"}`,
-    `Order #: ${orderShort}`,
-    `Invoice Date: ${new Date(order.invoiceGeneratedAt ?? order.createdAt).toLocaleDateString()}`,
-    `Order Date: ${new Date(order.createdAt).toLocaleDateString()}`,
-    `Payment: ${order.paymentStatus}${order.paymentMethod ? ` (${order.paymentMethod})` : ""}`,
-    ...(letterhead.gst_number ? [`GSTIN: ${letterhead.gst_number}`] : []),
-    ...(letterhead.pan_number ? [`PAN: ${letterhead.pan_number}`] : []),
-    ...(letterhead.cin_number ? [`CIN: ${letterhead.cin_number}`] : []),
-  ];
-  for (const line of rightLines) { doc.text(line, RIGHT, rightY, { align: "right" }); rightY += 4; }
+  let rightY = y + 6;
+  for (const line of metaLines) { doc.text(line, RIGHT, rightY, { align: "right" }); rightY += 4; }
 
-  y = Math.max(leftY, rightY) + 4;
+  const y2 = Math.max(leftY, rightY) + 4;
   doc.setDrawColor(20);
   doc.setLineWidth(0.5);
-  doc.line(MARGIN, y, RIGHT, y);
-  y += 7;
+  doc.line(MARGIN, y2, RIGHT, y2);
+  return y2 + 7;
+}
 
+function drawParties(doc: jsPDF, order: Order, y: number): number {
   const colWidth = (RIGHT - MARGIN) / 2;
   const billing = order.billingAddress ?? order.shippingAddress;
   const shipping = order.shippingAddress;
@@ -151,19 +141,20 @@ export async function downloadInvoicePdf(order: Order, letterhead: LetterheadCon
     : [];
   for (const line of shipLines) { doc.text(line, MARGIN + colWidth, shipY, { maxWidth: colWidth - 4 }); shipY += 4; }
 
-  y = Math.max(billY, shipY) + 3;
+  let nextY = Math.max(billY, shipY) + 3;
 
   if (order.placeOfSupply) {
     doc.setFontSize(9);
-    doc.text(`Place of Supply: ${order.placeOfSupply}${order.stateCode ? ` (${order.stateCode})` : ""}`, MARGIN, y);
-    y += 6;
+    doc.text(`Place of Supply: ${order.placeOfSupply}${order.stateCode ? ` (${order.stateCode})` : ""}`, MARGIN, nextY);
+    nextY += 6;
   }
 
   doc.setDrawColor(200);
-  doc.line(MARGIN, y, RIGHT, y);
-  y += 6;
+  doc.line(MARGIN, nextY, RIGHT, nextY);
+  return nextY + 6;
+}
 
-  // Items table (manual — no autotable plugin, mirrors the existing hand-rolled style).
+function drawItemsTable(doc: jsPDF, order: Order, y: number, watermark: ImageInfo | null, watermarkOpacity: number): number {
   const cols = { idx: MARGIN, item: MARGIN + 8, qty: 130, rate: 150, amount: RIGHT };
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
@@ -179,7 +170,11 @@ export async function downloadInvoicePdf(order: Order, letterhead: LetterheadCon
   doc.setFont("helvetica", "normal");
 
   order.items.forEach((item, idx) => {
-    if (y > 265) { doc.addPage(); y = 20; }
+    if (y > ITEMS_BREAK_Y) {
+      doc.addPage();
+      drawWatermark(doc, watermark, watermarkOpacity);
+      y = 20;
+    }
     doc.text(String(idx + 1), cols.idx, y);
     doc.text(item.productName ?? item.productType, cols.item, y, { maxWidth: cols.qty - cols.item - 4 });
     doc.text(String(item.quantity), cols.qty, y);
@@ -200,40 +195,50 @@ export async function downloadInvoicePdf(order: Order, letterhead: LetterheadCon
 
   doc.setDrawColor(200);
   doc.line(MARGIN, y, RIGHT, y);
-  y += 8;
+  return y + 8;
+}
 
-  function summaryRow(label: string, value: string, bold = false) {
-    doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.text(label, RIGHT - 60, y);
-    doc.text(value, RIGHT, y, { align: "right" });
+function drawSummary(doc: jsPDF, rows: { label: string; value: string; bold?: boolean }[], y: number): number {
+  for (const row of rows) {
+    doc.setFont("helvetica", row.bold ? "bold" : "normal");
+    if (row.bold) {
+      doc.setDrawColor(200);
+      doc.line(RIGHT - 60, y - 4, RIGHT, y - 4);
+    }
+    doc.text(row.label, RIGHT - 60, y);
+    doc.text(row.value, RIGHT, y, { align: "right" });
     y += 6;
   }
-  summaryRow("Subtotal", formatPrice(order.subtotal));
-  if (order.discountAmount > 0) summaryRow("Discount", `-${formatPrice(order.discountAmount)}`);
-  if (order.platformFee > 0) summaryRow("Platform Fee", formatPrice(order.platformFee));
-  summaryRow("Delivery", order.deliveryFee === 0 ? "FREE" : formatPrice(order.deliveryFee));
-  doc.setDrawColor(200);
-  doc.line(RIGHT - 60, y - 4, RIGHT, y - 4);
-  summaryRow("Grand Total", formatPrice(order.total), true);
+  return y;
+}
 
-  y += 10;
-  if (y > 250) { doc.addPage(); y = 20; }
+/**
+ * Bank/T&C + signature + footer text + computer-generated note, pinned to a
+ * fixed reserved zone near the bottom of the page (not wherever content
+ * happens to end) so there's always proper breathing room above the edge.
+ * Page-breaks first if the preceding content already runs into that zone.
+ */
+function drawFooter(doc: jsPDF, letterhead: LetterheadConfig, signature: ImageInfo | null, contentY: number, watermark: ImageInfo | null) {
+  let y = FOOTER_ZONE_TOP;
+  if (contentY > FOOTER_ZONE_TOP) {
+    doc.addPage();
+    drawWatermark(doc, watermark, letterhead.watermark_opacity);
+    y = FOOTER_ZONE_TOP;
+  }
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(100);
-  const notesX = MARGIN;
   const notesWidth = 110;
   let notesY = y;
   if (letterhead.bank_details_text) {
     const lines = doc.splitTextToSize(letterhead.bank_details_text, notesWidth);
-    doc.text(lines, notesX, notesY);
+    doc.text(lines, MARGIN, notesY);
     notesY += lines.length * 3.5 + 2;
   }
   if (letterhead.terms_and_conditions) {
     const lines = doc.splitTextToSize(letterhead.terms_and_conditions, notesWidth);
-    doc.text(lines, notesX, notesY);
-    notesY += lines.length * 3.5;
+    doc.text(lines, MARGIN, notesY);
   }
 
   let sigY = y;
@@ -255,15 +260,104 @@ export async function downloadInvoicePdf(order: Order, letterhead: LetterheadCon
     doc.text(letterhead.signature_designation, RIGHT, sigY, { align: "right" });
   }
 
-  const finalY = Math.max(notesY, sigY, 280);
   doc.setFontSize(8);
   doc.setTextColor(100);
   if (letterhead.footer_text) {
-    doc.text(letterhead.footer_text, PAGE_WIDTH / 2, Math.min(finalY, 285), { align: "center" });
+    doc.text(letterhead.footer_text, PAGE_WIDTH / 2, FOOTER_TEXT_Y, { align: "center" });
   }
   doc.setFontSize(7.5);
   doc.setTextColor(150);
-  doc.text("This is a computer generated invoice.", PAGE_WIDTH / 2, 292, { align: "center" });
+  doc.text("This is a computer generated invoice.", PAGE_WIDTH / 2, GENERATED_NOTE_Y, { align: "center" });
+}
 
-  doc.save(`invoice-${orderShort}.pdf`);
+async function loadLetterheadImages(letterhead: LetterheadConfig) {
+  const [logo, signature, watermark] = await Promise.all([
+    loadImage(letterhead.logo_url),
+    loadImage(letterhead.signature_url),
+    loadImage(letterhead.watermark_url),
+  ]);
+  return { logo, signature, watermark };
+}
+
+export interface TaxBreakdown {
+  cgstPercent: number;
+  sgstPercent: number;
+  cgstAmount: number;
+  sgstAmount: number;
+}
+
+/**
+ * Tax Invoice: products/services + GST, sourced entirely from the order
+ * snapshot and the site-wide Letterhead Configuration — no hardcoded values.
+ */
+export async function downloadTaxInvoicePdf(order: Order, letterhead: LetterheadConfig, tax: TaxBreakdown): Promise<void> {
+  const { logo, signature, watermark } = await loadLetterheadImages(letterhead);
+  const doc = new jsPDF();
+  const orderShort = order.id.slice(0, 8).toUpperCase();
+
+  drawWatermark(doc, watermark, letterhead.watermark_opacity);
+
+  const metaLines = [
+    `Invoice #: ${order.invoiceNumber ?? "—"}`,
+    `Order #: ${orderShort}`,
+    `Invoice Date: ${new Date(order.invoiceGeneratedAt ?? order.createdAt).toLocaleDateString()}`,
+    `Order Date: ${new Date(order.createdAt).toLocaleDateString()}`,
+    `Payment: ${order.paymentStatus}${order.paymentMethod ? ` (${order.paymentMethod})` : ""}`,
+    ...(letterhead.gst_number ? [`GSTIN: ${letterhead.gst_number}`] : []),
+    ...(letterhead.pan_number ? [`PAN: ${letterhead.pan_number}`] : []),
+    ...(letterhead.cin_number ? [`CIN: ${letterhead.cin_number}`] : []),
+  ];
+  let y = drawHeader(doc, letterhead, logo, "TAX INVOICE", metaLines);
+
+  y = drawParties(doc, order, y);
+  y = drawItemsTable(doc, order, y, watermark, letterhead.watermark_opacity);
+
+  const rows: { label: string; value: string; bold?: boolean }[] = [
+    { label: "Subtotal", value: formatPrice(order.subtotal) },
+  ];
+  if (order.discountAmount > 0) rows.push({ label: "Discount", value: `-${formatPrice(order.discountAmount)}` });
+  if (tax.cgstPercent > 0) rows.push({ label: `CGST (${tax.cgstPercent}%)`, value: formatPrice(tax.cgstAmount) });
+  if (tax.sgstPercent > 0) rows.push({ label: `SGST (${tax.sgstPercent}%)`, value: formatPrice(tax.sgstAmount) });
+  rows.push({ label: "Delivery", value: order.deliveryFee === 0 ? "FREE" : formatPrice(order.deliveryFee) });
+  const grandTotal = order.subtotal - order.discountAmount + tax.cgstAmount + tax.sgstAmount + order.deliveryFee;
+  rows.push({ label: "Grand Total", value: formatPrice(grandTotal), bold: true });
+  y = drawSummary(doc, rows, y);
+
+  drawFooter(doc, letterhead, signature, y, watermark);
+
+  doc.save(`tax-invoice-${orderShort}.pdf`);
+}
+
+/**
+ * Platform Fee Invoice — separate document from the Tax Invoice, matching
+ * common Indian GST practice of invoicing platform/commission fees as a
+ * distinct supply from the goods/services themselves.
+ */
+export async function downloadPlatformFeeInvoicePdf(order: Order, letterhead: LetterheadConfig): Promise<void> {
+  const { logo, signature, watermark } = await loadLetterheadImages(letterhead);
+  const doc = new jsPDF();
+  const orderShort = order.id.slice(0, 8).toUpperCase();
+
+  drawWatermark(doc, watermark, letterhead.watermark_opacity);
+
+  const metaLines = [
+    `Order #: ${orderShort}`,
+    `Invoice Date: ${new Date(order.invoiceGeneratedAt ?? order.createdAt).toLocaleDateString()}`,
+    `Payment: ${order.paymentStatus}${order.paymentMethod ? ` (${order.paymentMethod})` : ""}`,
+    ...(letterhead.gst_number ? [`GSTIN: ${letterhead.gst_number}`] : []),
+    ...(letterhead.pan_number ? [`PAN: ${letterhead.pan_number}`] : []),
+  ];
+  let y = drawHeader(doc, letterhead, logo, "PLATFORM FEE INVOICE", metaLines);
+
+  y = drawParties(doc, order, y);
+
+  const rows: { label: string; value: string; bold?: boolean }[] = [
+    { label: "Platform Fee", value: formatPrice(order.platformFee) },
+    { label: "Grand Total", value: formatPrice(order.platformFee), bold: true },
+  ];
+  y = drawSummary(doc, rows, y + 4);
+
+  drawFooter(doc, letterhead, signature, y, watermark);
+
+  doc.save(`platform-fee-invoice-${orderShort}.pdf`);
 }
