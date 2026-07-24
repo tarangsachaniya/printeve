@@ -4,6 +4,7 @@ import * as React from "react";
 import { Camera, Loader2, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { toWebP } from "@/lib/cloudinary";
 
 interface AvatarUploadProps {
   name: string;
@@ -48,8 +49,9 @@ export function AvatarUpload({ name, avatarUrl, onUploaded, size = "xl" }: Avata
     setUploading(true);
 
     try {
+      const webp = await toWebP(file);
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", webp, file.name.replace(/\.[^.]+$/, ".webp"));
       form.append("upload_preset", UPLOAD_PRESET);
 
       const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
