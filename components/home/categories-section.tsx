@@ -4,7 +4,6 @@ import {
   ArrowRight, Layers, CreditCard, FileText, BookOpen,
   ImageIcon, Flag, Sticker, Package, Megaphone, Printer,
 } from "lucide-react";
-import { api } from "@/lib/api";
 import type { Category } from "@/lib/types";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -18,15 +17,6 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "marketing-materials": Megaphone,
   "bulk-printing": Printer,
 };
-
-async function getCategories(): Promise<Category[]> {
-  try {
-    const res = await api.get<{ items: Category[] }>("/categories");
-    return res.items ?? [];
-  } catch {
-    return [];
-  }
-}
 
 function CategoryCard({ category, className }: { category: Category; className?: string }) {
   return (
@@ -80,9 +70,13 @@ function CategoryCard({ category, className }: { category: Category; className?:
   );
 }
 
-export async function CategoriesSection({ displayStyle = "grid" }: { displayStyle?: "grid" | "scroll" }) {
-  const categories = await getCategories();
-
+export function CategoriesSection({
+  categories,
+  displayStyle = "grid",
+}: {
+  categories: Category[];
+  displayStyle?: "grid" | "scroll";
+}) {
   if (categories.length === 0) return null;
 
   return (

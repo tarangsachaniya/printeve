@@ -1,34 +1,22 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function ClaimButton({
-  promotionId,
-  code,
-  className,
-}: {
-  promotionId: string;
-  code: string;
-  className?: string;
-}) {
-  const router = useRouter();
-
+export function ClaimButton({ code, className }: { code: string; className?: string }) {
   async function handleClaim() {
     try {
       await navigator.clipboard.writeText(code);
       toast.success(`Code ${code} copied!`);
     } catch {
-      toast.error("Couldn't copy the code — you can still view it below.");
+      toast.error("Couldn't copy the code — it's shown above, copy it manually.");
     }
-    router.push(`/coupons/${promotionId}`);
   }
 
   return (
     <Button onClick={handleClaim} size="sm" className={cn("w-full", className)}>
-      Claim
+      Copy code
     </Button>
   );
 }

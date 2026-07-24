@@ -1,9 +1,7 @@
-import { getStories } from "@/lib/stories";
+import type { Story } from "@/lib/types";
 import { StoriesRailClient } from "./stories-rail-client";
 
-export async function StoriesRail() {
-  const stories = await getStories();
-
+export function StoriesRail({ stories }: { stories: Story[] }) {
   if (stories.length === 0) return null;
 
   return <StoriesRailClient stories={stories} />;
